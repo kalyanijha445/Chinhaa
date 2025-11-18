@@ -561,7 +561,6 @@ def report():
             flash(f"Error processing captured photo: {e}", "danger")
             return redirect(url_for('user_dashboard'))
 
-    # --- FIX APPLIED HERE ---
     # Define all expected keys in the SQL query to ensure the dictionary is complete
     expected_keys = [
         'status', 'name', 'age', 'hair_color', 'eye_color', 'skin_color', 
@@ -575,16 +574,11 @@ def report():
     report_data['reporter_id'] = session['user_id']
     report_data['photo_path'] = photo_filename
     
-    # The SQL is long, so we ensure the dictionary contains every required key for the named parameters.
-    # The dictionary comprehension already handles this, but explicitly ensuring keys are not missed:
-    # (The original code used `request.form` which might miss unchecked/unsubmitted optional fields)
-    
     # Check for any missing keys from the form submission and set to None
     for key in expected_keys:
         if key not in report_data:
             report_data[key] = None
-    # --- FIX END ---
-
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -740,8 +734,14 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
+# --- FIX APPLIED HERE ---
+# Initialize DB and create directories at the module level.
+# This ensures they run when the app is imported by a WSGI server (like Gunicorn/Render).
+init_db()
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+# ------------------------
+
 if __name__ == '__main__':
-    init_db()
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
+    # 'debug=True' is typically used for local development
     app.run(debug=True)
