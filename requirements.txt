@@ -1,3 +1,4 @@
+google-generativeai
 requests>=2.27.1
 numpy>=1.14.0
 pandas>=0.23.4
