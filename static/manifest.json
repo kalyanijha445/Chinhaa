@@ -1,0 +1,23 @@
+{
+  "name": "CHINH - Reunite Families",
+  "short_name": "CHINH",
+  "description": "Join our community to help find missing individuals and reunite families.",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#fe4c25"
+}

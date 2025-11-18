@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate-key="page_title">CHINH - Report List</title>
+    <!-- Poppins Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/png">
+    <meta name="theme-color" content="#fe4c25">
+    <style>
+        :root {
+            --bg-color: #e3e9ef;
+            --primary-text: #0d1122;
+            --secondary-text: #5a5f73;
+            --accent-color: #fe4c25;
+            --card-bg: #ffffff;
+            --border-color: #d1d9e6;
+            --shadow: 0 8px 24px rgba(13, 17, 34, 0.06);
+            --smooth-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* 1. Global & Reset Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            overscroll-behavior-y: contain;
+        }
+        body.panel-open { overflow: hidden; }
+        
+        /* 2. Slide-in Panels (Menu & Profile) */
+        .blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 34, 0.3);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            z-index: 998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .blur-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* --- Left Side Menu --- */
+        #side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 85%;
+            max-width: 320px;
+            height: 100vh;
+            background: var(--card-bg);
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+        }
+        
+        #side-menu.open {
+            transform: translateX(0);
+            box-shadow: 10px 0 40px rgba(13, 17, 34, 0.15);
+        }
+
+        .side-menu-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .side-menu-header img { width: 40px; height: 40px; }
+        .side-menu-header h2 { font-size: 22px; font-weight: 600; color: var(--primary-text); }
+        
+        .menu-items { list-style: none; margin-top: 30px; }
+        .menu-item details { cursor: pointer; }
+        .menu-item summary {
+            display: flex;
+            align-items: center;
+            padding: 15px 10px;
+            font-weight: 500;
+            font-size: 16px;
+            list-style: none;
+            border-radius: 8px;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .menu-item summary::-webkit-details-marker { display: none; }
+        .menu-item summary:hover {
+            background-color: var(--bg-color);
+        }
+        .menu-item summary svg { margin-right: 15px; stroke: var(--secondary-text); }
+        .menu-item summary .arrow { margin-left: auto; transition: transform 0.3s; }
+        .menu-item details[open] .arrow { transform: rotate(90deg); }
+        
+        .dropdown-content { padding: 10px 15px 15px 49px; line-height: 1.6; font-size: 14px; }
+        .dropdown-content p { color: var(--secondary-text); margin-top: 4px; }
+        .dropdown-content strong { color: var(--primary-text); font-weight: 600; }
+        .dropdown-content a {
+            display: block;
+            text-decoration: none;
+            color: var(--primary-text);
+            font-weight: 500;
+            padding: 8px 10px;
+            margin: 2px -10px;
+            border-radius: 6px;
+            transition: var(--smooth-transition);
+        }
+        .dropdown-content a:hover { color: var(--accent-color); background-color: var(--bg-color); }
+        
+        /* --- Right Profile Page (FOR OFFICIALS) --- */
+        #profile-page {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-color); z-index: 1000;
+            transform: translateX(100%); transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px; overflow-y: auto;
+        }
+        #profile-page.open { transform: translateX(0); }
+        .profile-page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .profile-page-header h2 { font-size: 24px; }
+        #closeProfileBtn { background-color: var(--card-bg); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: var(--smooth-transition); border:none; cursor: pointer;}
+        #closeProfileBtn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .profile-card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: var(--shadow); }
+        .profile-icon-wrapper {
+            background-color: var(--bg-color); width: 100px; height: 100px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px auto; border: 4px solid var(--card-bg);
+            box-shadow: 0 5px 20px rgba(13, 17, 34, 0.1), 0 0 0 1px var(--border-color);
+        }
+        .profile-icon-wrapper svg { stroke: var(--primary-text); width: 50px; height: 50px; }
+        .profile-card h3 { font-size: 18px; margin-bottom: 20px; color: var(--primary-text); text-align: center; }
+        .profile-details p { background: var(--bg-color); padding: 12px 15px; border-radius: 10px; font-size: 15px; margin-bottom: 12px; text-align: left; }
+        .profile-details strong { font-weight: 600; color: var(--secondary-text); }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--primary-text); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 500; transition: var(--smooth-transition); box-shadow: 0 4px 15px rgba(13, 17, 34, 0.2); }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(13, 17, 34, 0.25); }
+        .btn-accent { background: var(--accent-color); }
+        .btn-accent:hover { box-shadow: 0 7px 20px rgba(254, 76, 37, 0.3); }
+        .btn-full { width: 100%; }
+        
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 8px; color: var(--secondary-text); }
+        .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 15px; color: var(--primary-text); }
+        
+        .header { position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 20px; z-index: 950; background-color: rgba(227, 233, 239, 0.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(209, 217, 230, 0.5); }
+        #profile-btn, #menu-btn, .icon-btn { background-color: rgba(255, 255, 255, 0.6); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; display: flex; align-items: center; justify-content: center; transition: var(--smooth-transition); cursor: pointer; }
+        #profile-btn:hover, #menu-btn:hover, .icon-btn:hover { background-color: white; box-shadow: var(--shadow); transform: translateY(-2px); }
+        #profile-btn svg, #menu-btn svg, .icon-btn svg { display: block; }
+        .header-title { font-size: 20px; font-weight: 600; color: var(--primary-text); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: var(--card-bg); box-shadow: 0 -5px 30px rgba(13, 17, 34, 0.1); border-top: 1px solid var(--border-color); border-radius: 20px 20px 0 0; display: flex; justify-content: space-around; align-items: center; z-index: 900; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--secondary-text); transition: var(--smooth-transition); }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item p { font-size: 12px; font-weight: 500; }
+        .main-container { padding: 88px 20px 100px 20px; }
+        
+        /* Search and Filter Bar */
+        .search-filter-bar { display: flex; gap: 15px; align-items: center; margin-bottom: 25px; }
+        .search-container { position: relative; flex-grow: 1; }
+        #search-input { width: 100%; padding: 12px 45px 12px 15px; border-radius: 10px; border: 1px solid var(--border-color); background-color: var(--card-bg); font-size: 15px; font-family: 'Poppins', sans-serif; box-shadow: var(--shadow); }
+        #search-input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(254, 76, 37, 0.1); }
+        #mic-btn { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 8px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #mic-btn.listening svg { stroke: var(--accent-color); }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(254, 76, 37, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(254, 76, 37, 0); } 100% { box-shadow: 0 0 0 0 rgba(254, 76, 37, 0); } }
+        #mic-btn.listening { animation: pulse 2s infinite; }
+        #filter-btn { flex-shrink: 0; width: 48px; height: 48px; background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border-color); box-shadow: var(--shadow); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .report-card { 
+            background: rgba(255, 255, 255, 0.75); 
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border-radius: 16px; 
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden; 
+            transition: var(--smooth-transition);
+            display: flex;
+            flex-direction: column;
+        }
+        .report-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        
+        .img-container {
+            width: 100%;
+            height: 260px;
+            overflow: hidden;
+            position: relative;
+        }
+        .report-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background-color: #f0f0f0;
+            transition: transform 0.4s ease-out;
+        }
+        .report-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .report-card .content { padding: 15px; }
+        .report-card h3 { margin-top: 0; margin-bottom: 5px; font-size: 20px; }
+        .report-card .status { font-weight: bold; padding: 4px 10px; border-radius: 99px; font-size: 12px; color: white; display: inline-block; margin-bottom: 15px; }
+        .status-lost { background-color: #dc3545; }
+        .status-found { background-color: #28a745; }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .info-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--secondary-text); }
+        .info-item svg { width: 18px; height: 18px; stroke: var(--secondary-text); stroke-width: 1.5; flex-shrink: 0; fill: none; }
+        .info-item p { margin: 0; }
+        
+        .report-card details { border-top: 1px solid var(--border-color); margin-top: 15px; padding-top: 15px; }
+        details > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; color: var(--primary-text); }
+        details > summary::-webkit-details-marker { display: none; }
+        .arrow { transition: transform 0.3s ease; }
+        details[open] .arrow { transform: rotate(180deg); }
+        .details-content { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; font-size: 14px; }
+        .details-content p { margin: 0; color: var(--secondary-text); }
+        .no-reports { text-align: center; color: var(--secondary-text); padding: 50px 20px; grid-column: 1 / -1; font-size: 16px; background: var(--card-bg); border-radius: 12px; }
+
+        #filter-panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1001; background: var(--card-bg); border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.15); padding: 25px; transform: translateY(100%); transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+        #filter-panel.open { transform: translateY(0); }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .filter-header h2 { font-size: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="blur-overlay" class="blur-overlay"></div>
+    
+    <!-- Side Menu (Identical for both user types) -->
+    <nav id="side-menu">
+        <div class="side-menu-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="CHINH Logo">
+            <h2 data-translate-key="side_menu_title">CHINH</h2>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zM6.34 9a6 6 0 0 1 11.32 0M6.34 15a6 6 0 0 0 11.32 0"/></svg>
+                        <span data-translate-key="change_language">Change Language</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="changeLanguage('en')"><span data-translate-key="english">English</span></a> 
+                        <a href="#" onclick="changeLanguage('hi')"><span data-translate-key="hindi">हिंदी (Hindi)</span></a> 
+                        <a href="#" onclick="changeLanguage('or')"><span data-translate-key="odia">ଓଡିଆ (Odia)</span></a>
+                    </div>
+                </details>
+            </li>
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <span data-translate-key="about_us">About Us</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <strong data-translate-key="our_mission_title">Our Mission</strong>
+                        <p data-translate-key="our_mission_text">To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.</p>
+                    </div>
+                </details>
+            </li>
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <span data-translate-key="help_support">Help & Support</span>
+                         <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                     <div class="dropdown-content">
+                        <strong data-translate-key="faq_title">FAQ</strong>
+                        <p data-translate-key="faq_text">Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.</p>
+                        <br>
+                        <strong data-translate-key="contact_us_title">Contact Us</strong>
+                        <p data-translate-key="contact_us_text">For urgent assistance or queries, please reach out to our support team at support@chinh.org.</p>
+                    </div>
+                </details>
+            </li>
+        </ul>
+    </nav>
+    
+    <!-- MODIFICATION: Profile Page Content from official_dashboard.html -->
+    <div id="profile-page">
+        <div class="profile-page-header">
+            <h2 data-translate-key="my_profile_title">My Profile</h2>
+            <button id="closeProfileBtn" class="icon-btn" title="Close Profile" data-translate-title="close_profile_label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="profile-card">
+            <div class="profile-icon-wrapper">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+             <h3 data-translate-key="official_details_title">Official Details</h3>
+             <div class="profile-details">
+                <p><strong><span data-translate-key="profile_name_label">Name:</span></strong> {{ current_user.name or 'N/A' }}</p>
+                <p><strong><span data-translate-key="profile_email_label">Email:</span></strong> {{ current_user.email or 'N/A' }}</p>
+             </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-full btn-accent" style="margin-top: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span data-translate-key="logout_btn">Logout</span>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <header class="header">
+            <button id="menu-btn" class="icon-btn" title="Open Menu" data-translate-title="open_menu_label"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <h2 class="header-title" data-translate-key="header_list">Active Reports</h2>
+            <button id="profile-btn" class="icon-btn" title="Open Profile" data-translate-title="open_profile_label"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+        </header>
+
+        <div class="main-container">
+            <div class="search-filter-bar">
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search by name, location..." data-translate-placeholder="search_placeholder">
+                    <button id="mic-btn" title="Search by voice" data-translate-title="mic_title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                    </button>
+                </div>
+                <button id="filter-btn" title="Open filters" data-translate-title="filter_title">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                </button>
+            </div>
+            
+            <div class="reports-grid" id="reports-grid">
+                {% for report in reports %}
+                    <div class="report-card" 
+                        data-name="{{ report.name | default('', true) | lower }}" 
+                        data-location="{{ report.last_seen_location | default('', true) | lower }}" 
+                        data-status="{{ report.status | lower }}" 
+                        data-age="{{ report.age | default(-1, true) }}"
+                        data-date="{{ report.last_seen_date }}"
+                        data-hair-color="{{ report.hair_color | default('', true) | lower }}"
+                        data-eye-color="{{ report.eye_color | default('', true) | lower }}">
+                        
+                        <div class="img-container">
+                            {% if report.photo_path %}
+                                <img src="{{ url_for('static', filename='uploads/' + report.photo_path) }}" alt="Photo of {{ report.name }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/280x260.png?text=No+Image" alt="No Image provided">
+                            {% endif %}
+                        </div>
+
+                        <div class="content">
+                            <h3>{{ report.name or 'Unnamed Person' }}</h3>
+                            <span class="status status-{{ report.status }}">{{ report.status.capitalize() }}</span>
+                            
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    <p><strong data-translate-key="age_card_label">Age:</strong> {{ report.age or 'N/A' }}</p>
+                                </div>
+                                 <div class="info-item" style="grid-column: 1 / -1;">
+                                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    <p>{{ report.last_seen_location or 'N/A' }}</p>
+                                </div>
+                                <div class="info-item">
+                                     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    <p>{{ report.last_seen_date or 'N/A' }}</p>
+                                </div>
+                                <div class="info-item">
+                                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <p>{{ report.last_seen_time or 'N/A' }}</p>
+                                </div>
+                            </div>
+
+                            <details>
+                                <summary>
+                                    <span data-translate-key="show_details">Show Full Details</span>
+                                    <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </summary>
+                                <div class="details-content">
+                                    <p><strong data-translate-key="hair_color_label_card">Hair Color:</strong> {{ report.hair_color or 'N/A' }}</p>
+                                    <p><strong data-translate-key="eye_color_label_card">Eye Color:</strong> {{ report.eye_color or 'N/A' }}</p>
+                                    <p><strong data-translate-key="height_label_card">Height:</strong> {{ report.height or 'N/A' }}</p>
+                                    <p><strong data-translate-key="identity_marks_label_card">Identity Marks:</strong> {{ report.identity_marks or 'N/A' }}</p>
+                                    <p><strong data-translate-key="clothing_desc_label_card">Clothing:</strong> {{ report.clothing_description or 'N/A' }}</p>
+                                    <p><strong data-translate-key="other_details_label_card">Other Info:</strong> {{ report.other_details or 'N/A' }}</p>
+                                    <p><strong data-translate-key="contact_label_card">Contact:</strong> {{ report.contact_no or 'N/A' }}</p>
+                                    <p><strong data-translate-key="reported_on_label_card">Reported On:</strong> {{ report.report_timestamp.split(' ')[0] }}</p>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="no-reports" data-translate-key="no_reports">There are no reports filed yet.</p>
+                {% endfor %}
+                <p id="no-results-message" class="no-reports" style="display: none;" data-translate-key="no_results_message">No reports match your search criteria.</p>
+            </div>
+        </div>
+
+        <!-- MODIFICATION: Bottom Navigation for officials -->
+        <nav class="bottom-nav">
+             <a href="{{ url_for('official_dashboard') }}" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <p data-translate-key="nav_home">Home</p>
+            </a>
+            <a href="{{ url_for('list_official') }}" class="nav-item active">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <p data-translate-key="nav_list">List</p>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Filter Panel from list.html -->
+    <div id="filter-panel">
+        <div class="filter-header">
+            <h2 data-translate-key="filter_title_panel">Filters</h2>
+            <button id="close-filter-btn" class="icon-btn" aria-label="Close filters" data-translate-aria-label="close_filters"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+        </div>
+        <div class="form-group">
+            <label for="filter-status" data-translate-key="status_label">Status</label>
+            <select id="filter-status"><option value="all" data-translate-key="all_option">All</option><option value="lost" data-translate-key="lost_option">Lost</option><option value="found" data-translate-key="found_option">Found</option></select>
+        </div>
+        <div class="form-group">
+            <label data-translate-key="age_range_label">Age Range</label>
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
+                <input type="number" id="filter-age-min" min="0" placeholder="Min" data-translate-placeholder="age_min_placeholder">
+                <span>-</span>
+                <input type="number" id="filter-age-max" min="0" placeholder="Max" data-translate-placeholder="age_max_placeholder">
+            </div>
+        </div>
+         <div class="form-group">
+            <label for="filter-hair-color" data-translate-key="hair_color_label_filter">Hair Color</label>
+            <input type="text" id="filter-hair-color" placeholder="e.g., Black" data-translate-placeholder="hair_color_placeholder">
+        </div>
+        <div class="form-group">
+            <label for="filter-eye-color" data-translate-key="eye_color_label_filter">Eye Color</label>
+            <input type="text" id="filter-eye-color" placeholder="e.g., Brown" data-translate-placeholder="eye_color_placeholder">
+        </div>
+        <div class="form-group">
+            <label data-translate-key="date_range_label">Date Range (Seen/Found)</label>
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;">
+                <input type="date" id="filter-date-start" title="Start date">
+                <span style="text-align: center;" data-translate-key="date_range_to">to</span>
+                <input type="date" id="filter-date-end" title="End date">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // MODIFICATION: Enhanced Script with official profile translation keys
+        const translations = {
+            'en': {
+                // Page specific from list.html
+                page_title: 'CHINH - Report List', header_list: 'Active Reports', search_placeholder: 'Search by name, location...', mic_title: 'Search by voice', filter_title: 'Open filters', age_card_label: 'Age:', show_details: 'Show Full Details', hide_details: 'Hide Details', no_reports: 'There are no reports filed yet.', filter_title_panel: 'Filters', close_filters: 'Close filters', status_label: 'Status', all_option: 'All', lost_option: 'Lost', found_option: 'Found', age_range_label: 'Age Range', date_range_label: 'Date Range (Seen/Found)', hair_color_label_card: 'Hair Color:', eye_color_label_card: 'Eye Color:', height_label_card: 'Height:', identity_marks_label_card: 'Identity Marks:', clothing_desc_label_card: 'Clothing:', other_details_label_card: 'Other Info:', contact_label_card: 'Contact:', reported_on_label_card: 'Reported On:', searching: 'Searching...', no_results_message: 'No reports match your search criteria.', no_mic: 'Microphone access is not available or denied.',
+                age_min_placeholder: "Min", age_max_placeholder: "Max", hair_color_label_filter: "Hair Color", hair_color_placeholder: "e.g., Black", eye_color_label_filter: "Eye Color", eye_color_placeholder: "e.g., Brown", date_range_to: 'to',
+                
+                // Shared & Profile specific keys for official
+                side_menu_title: 'CHINH', change_language: 'Change Language', english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', about_us: 'About Us', our_mission_title: 'Our Mission', our_mission_text: 'To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.', help_support: 'Help & Support', faq_title: 'FAQ', faq_text: 'Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.', contact_us_title: 'Contact Us', contact_us_text: 'For urgent assistance or queries, please reach out to our support team at support@chinh.org.', my_profile_title: 'My Profile', close_profile_label: 'Close Profile', logout_btn: 'Logout',
+                official_details_title: 'Official Details', profile_name_label: 'Name:', profile_email_label: 'Email:', 
+                open_menu_label: 'Open Menu', open_profile_label: 'Open Profile', nav_home: 'Home', nav_list: 'List'
+            },
+            'hi': {
+                // Page specific from list.html
+                page_title: 'चिन्ह - रिपोर्ट सूची', header_list: 'सक्रिय रिपोर्टें', search_placeholder: 'नाम, स्थान से खोजें...', mic_title: 'आवाज से खोजें', filter_title: 'फ़िल्टर खोलें', age_card_label: 'आयु:', show_details: 'पूरा विवरण दिखाएं', hide_details: 'विवरण छिपाएं', no_reports: 'अभी तक कोई रिपोर्ट दर्ज नहीं की गई है।', filter_title_panel: 'फ़िल्टर', close_filters: 'फ़िल्टर बंद करें', status_label: 'स्थिति', all_option: 'सभी', lost_option: 'खोया', found_option: 'मिला', age_range_label: 'आयु सीमा', date_range_label: 'दिनांक सीमा (देखा/पाया गया)', hair_color_label_card: 'बालों का रंग:', eye_color_label_card: 'आंखों का रंग:', height_label_card: 'ऊंचाई:', identity_marks_label_card: 'पहचान के निशान:', clothing_desc_label_card: 'कपड़े:', other_details_label_card: 'अन्य जानकारी:', contact_label_card: 'संपर्क:', reported_on_label_card: 'रिपोर्ट किया गया:', searching: 'खोज हो रही है...', no_results_message: 'कोई भी रिपोर्ट आपके खोज मापदंड से मेल नहीं खाती।', no_mic: 'माइक्रोफ़ोन उपलब्ध नहीं है या अनुमति नहीं है।',
+                age_min_placeholder: "न्यूनतम", age_max_placeholder: "अधिकतम", hair_color_label_filter: "बालों का रंग", hair_color_placeholder: "जैसे, काला", eye_color_label_filter: "आंखों का रंग", eye_color_placeholder: "जैसे, भूरा", date_range_to: 'से',
+                
+                // Shared & Profile specific keys for official
+                side_menu_title: 'चिन्ह', change_language: 'भाषा बदलें', english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', about_us: 'हमारे बारे में', our_mission_title: 'हमारा मिशन', our_mission_text: 'जागरूक नागरिकों का एक नेटवर्क बनाना और खोए हुए व्यक्तियों को उनके परिवारों से जल्दी और सुरक्षित रूप से मिलाने के लिए प्रौद्योगिकी का लाभ उठाना।', help_support: 'सहायता और समर्थन', faq_title: 'अक्सर पूछे जाने वाले प्रश्न', faq_text: 'रिपोर्टिंग, खोज और गोपनीयता के बारे में सामान्य प्रश्नों के उत्तर खोजने के लिए हमारे अक्सर पूछे जाने वाले प्रश्न अनुभाग पर जाएँ।', contact_us_title: 'हमसे संपर्क करें', contact_us_text: 'तत्काल सहायता या प्रश्नों के लिए, कृपया हमारी सहायता टीम से support@chinh.org पर संपर्क करें।', my_profile_title: 'मेरी प्रोफ़ाइल', close_profile_label: 'प्रोफ़ाइल बंद करें', logout_btn: 'लॉग आउट', 
+                official_details_title: 'आधिकारिक विवरण', profile_name_label: 'नाम:', profile_email_label: 'ईमेल:', 
+                open_menu_label: 'मेनू खोलें', open_profile_label: 'प्रोफ़ाइल खोलें', nav_home: 'होम', nav_list: 'सूची'
+            },
+            'or': {
+                // Page specific from list.html
+                page_title: 'ଚିହ୍ନ - ରିପୋର୍ଟ ତାଲିକା', header_list: 'ସକ୍ରିୟ ରିପୋର୍ଟଗୁଡିକ', search_placeholder: 'ନାମ, ସ୍ଥାନ ଦ୍ୱାରା ଖୋଜନ୍ତୁ...', mic_title: 'ଭଏସ୍ ଦ୍ୱାରା ଖୋଜନ୍ତୁ', filter_title: 'ଫିଲ୍ଟର୍ ଖୋଲନ୍ତୁ', age_card_label: 'ବୟସ:', show_details: 'ସମ୍ପୂର୍ଣ୍ଣ ବିବରଣୀ ଦେଖାନ୍ତୁ', hide_details: 'ବିବରଣୀ ଲୁଚାନ୍ତୁ', no_reports: 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ରିପୋର୍ଟ ଦାଖଲ ହୋଇନାହିଁ।', filter_title_panel: 'ଫିଲ୍ଟର୍ସ', close_filters: 'ଫିଲ୍ଟର୍ ବନ୍ଦ କରନ୍ତୁ', status_label: 'ସ୍ଥିତି', all_option: 'ସମସ୍ତ', lost_option: 'ହଜିଯାଇଛି', found_option: 'ମିଳିଛି', age_range_label: 'ବୟସ ସୀମା', date_range_label: 'ତାରିଖ ସୀମା (ଦେଖାଯାଇଛି/ମିଳିଛି)', hair_color_label_card: 'ଚୁଟିର ରଙ୍ଗ:', eye_color_label_card: 'ଆଖିର ରଙ୍ଗ:', height_label_card: 'ଉଚ୍ଚତା:', identity_marks_label_card: 'ପରିଚୟ ଚିହ୍ନ:', clothing_desc_label_card: 'ପୋଷାକ:', other_details_label_card: 'ଅନ୍ୟ ସୂଚନା:', contact_label_card: 'ଯୋଗାଯୋଗ:', reported_on_label_card: 'ରିପୋର୍ଟ କରାଯାଇଛି:', searching: 'ସର୍ଚ୍ଚ କରୁଛି...', no_results_message: 'କୌଣସି ରିପୋର୍ଟ ଆପଣଙ୍କ ଖୋଜ ମାନଦଣ୍ଡ ସହିତ ମେଳ ଖାଉ ନାହିଁ।', no_mic: 'ମାଇକ୍ରୋଫୋନ୍ ପ୍ରବେଶ ଉପଲବ୍ଧ ନୁହେଁ କିମ୍ବା ଅଗ୍ରାହ୍ୟ କରାଯାଇଛି।',
+                age_min_placeholder: "ନ्यूनतम", age_max_placeholder: "ସର୍ବାଧିକ", hair_color_label_filter: "ଚୁଟିର ରଙ୍ଗ", hair_color_placeholder: "ଯେପରି, କଳା", eye_color_label_filter: "ଆଖିର ରଙ୍ଗ", eye_color_placeholder: "ଯେପରି, ବାଦାମୀ", date_range_to: 'ଠାରୁ',
+
+                // Shared & Profile specific keys for official
+                side_menu_title: 'ଚିହ୍ନ', change_language: 'ଭାଷା ପରିବର୍ତ୍ତନ କରନ୍ତୁ', english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', about_us: 'ଆମ ବିଷୟରେ', our_mission_title: 'ଆମର ଲକ୍ଷ୍ୟ', our_mission_text: 'ସଜାଗ ନାଗରିକମାନଙ୍କର ଏକ ନେଟୱାର୍କ ଗଠନ କରିବା ଏବଂ ହଜିଯାଇଥିବା ବ୍ୟକ୍ତିମାନଙ୍କୁ ଶୀଘ୍ର ଏବଂ ସୁରକ୍ଷିତ ଭାବରେ ସେମାନଙ୍କ ପରିବାର ସହିତ ପୁନର୍ମିଳିତ କରିବା ପାଇଁ ପ୍ରଯୁକ୍ତିବିଦ୍ୟାର ଲାଭ ଉଠାଇବା।', help_support: 'ସହାୟତା ଓ ସମର୍ଥନ', faq_title: 'ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ', faq_text: 'ରିପୋର୍ଟ କରିବା, ଖୋଜିବା ଏବଂ ଗୋପନୀୟତା ବିଷୟରେ ସାଧାରଣ ପ୍ରଶ୍ନର ଉତ୍ତର ପାଇବା ପାଇଁ ଆମର ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ ବିଭାଗ ପରିଦର୍ଶନ କରନ୍ତୁ।', contact_us_title: 'ଆମ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ', contact_us_text: 'ଜରୁରୀ ସହାୟତା କିମ୍ବା ପ୍ରଶ୍ନ ପାଇଁ, ଦୟାକରି ଆମର ସହାୟତା ଦଳ ସହିତ support@chinh.org ରେ ଯୋଗାଯୋଗ କରନ୍ତୁ।', my_profile_title: 'ମୋର ପ୍ରୋଫାଇଲ୍', close_profile_label: 'ପ୍ରୋଫାଇଲ୍ ବନ୍ଦ କରନ୍ତୁ', logout_btn: 'ଲଗ୍ ଆଉଟ୍',
+                official_details_title: 'ଅଫିସିଆଲ୍ ବିବରଣୀ', profile_name_label: 'ନାମ:', profile_email_label: 'ଇମେଲ୍:',
+                open_menu_label: 'ମେନୁ ଖୋଲନ୍ତୁ', open_profile_label: 'ପ୍ରୋଫାଇଲ୍ ଖୋଲନ୍ତୁ', nav_home: 'ହୋମ୍', nav_list: 'ତାଲିକା'
+            }
+        };
+
+        const translatePage = (lang) => {
+            const langTranslations = translations[lang] || translations['en'];
+            document.querySelectorAll('[data-translate-key]').forEach(el => {
+                const key = el.dataset.translateKey;
+                if (langTranslations[key]) el.innerHTML = langTranslations[key];
+            });
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.dataset.translatePlaceholder;
+                if (langTranslations[key]) el.placeholder = langTranslations[key];
+            });
+            document.querySelectorAll('[data-translate-title]').forEach(el => {
+                const key = el.dataset.translateTitle;
+                if (langTranslations[key]) el.title = langTranslations[key];
+            });
+             document.querySelectorAll('[data-translate-aria-label]').forEach(el => {
+                const key = el.dataset.translateAriaLabel;
+                if (langTranslations[key]) el.setAttribute('aria-label', langTranslations[key]);
+            });
+            document.title = langTranslations.page_title;
+        };
+        
+        const changeLanguage = (lang) => {
+            localStorage.setItem('userLanguage', lang);
+            translatePage(lang);
+            document.getElementById('side-menu').classList.remove('open');
+            document.getElementById('blur-overlay').classList.remove('active');
+            document.body.classList.remove('panel-open');
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const blurOverlay = document.getElementById('blur-overlay');
+            const sideMenu = document.getElementById('side-menu');
+            const profilePage = document.getElementById('profile-page');
+            const filterPanel = document.getElementById('filter-panel');
+            
+            const closeAllOverlays = () => {
+                sideMenu.classList.remove('open');
+                profilePage.classList.remove('open');
+                filterPanel.classList.remove('open');
+                blurOverlay.classList.remove('active');
+                document.body.classList.remove('panel-open');
+            };
+
+            const openOverlay = (panel) => {
+                closeAllOverlays();
+                panel.classList.add('open');
+                blurOverlay.classList.add('active');
+                document.body.classList.add('panel-open');
+            }
+
+            document.getElementById('menu-btn').addEventListener('click', (e) => { e.stopPropagation(); openOverlay(sideMenu); });
+            document.getElementById('profile-btn').addEventListener('click', (e) => { e.stopPropagation(); openOverlay(profilePage); });
+            document.getElementById('filter-btn').addEventListener('click', (e) => { e.stopPropagation(); openOverlay(filterPanel); });
+            
+            document.getElementById('closeProfileBtn').addEventListener('click', closeAllOverlays);
+            document.getElementById('close-filter-btn').addEventListener('click', closeAllOverlays);
+            blurOverlay.addEventListener('click', closeAllOverlays);
+
+            // Card details toggle text
+            document.querySelectorAll('details').forEach(detail => {
+                detail.addEventListener('toggle', (event) => {
+                    const summary = detail.querySelector('summary > span');
+                    const lang = localStorage.getItem('userLanguage') || 'en';
+                    summary.textContent = detail.open ? (translations[lang].hide_details || 'Hide Details') : (translations[lang].show_details || 'Show Full Details');
+                });
+            });
+
+            // --- Search and Filter Logic ---
+            const searchInput = document.getElementById('search-input');
+            const filterStatus = document.getElementById('filter-status');
+            const filterAgeMin = document.getElementById('filter-age-min');
+            const filterAgeMax = document.getElementById('filter-age-max');
+            const filterDateStart = document.getElementById('filter-date-start');
+            const filterDateEnd = document.getElementById('filter-date-end');
+            const filterHairColor = document.getElementById('filter-hair-color');
+            const filterEyeColor = document.getElementById('filter-eye-color');
+            const allCards = document.querySelectorAll('.report-card');
+            const noResultsMessage = document.getElementById('no-results-message');
+            
+            function applyFiltersAndSearch() {
+                const searchQuery = searchInput.value.toLowerCase();
+                const status = filterStatus.value;
+                const minAge = parseInt(filterAgeMin.value, 10) || 0;
+                const maxAge = parseInt(filterAgeMax.value, 10) || 150;
+                const startDate = filterDateStart.value ? new Date(filterDateStart.value) : null;
+                const endDate = filterDateEnd.value ? new Date(filterDateEnd.value) : null;
+                const hairColorQuery = filterHairColor.value.toLowerCase();
+                const eyeColorQuery = filterEyeColor.value.toLowerCase();
+                
+                let visibleCount = 0;
+
+                allCards.forEach(card => {
+                    const name = card.dataset.name || '';
+                    const location = card.dataset.location || '';
+                    const cardStatus = card.dataset.status;
+                    const cardAge = parseInt(card.dataset.age, 10);
+                    const cardDate = card.dataset.date ? new Date(card.dataset.date) : null;
+                    const cardHairColor = card.dataset.hairColor || '';
+                    const cardEyeColor = card.dataset.eyeColor || '';
+
+                    const searchMatch = name.includes(searchQuery) || location.includes(searchQuery);
+                    const statusMatch = (status === 'all') || (cardStatus === status);
+                    const ageMatch = (cardAge >= minAge && cardAge <= maxAge) || cardAge === -1;
+                    const dateMatch = (!startDate || (cardDate && cardDate >= startDate)) && (!endDate || (cardDate && cardDate <= endDate));
+                    const hairMatch = !hairColorQuery || cardHairColor.includes(hairColorQuery);
+                    const eyeMatch = !eyeColorQuery || cardEyeColor.includes(eyeColorQuery);
+
+                    if (searchMatch && statusMatch && ageMatch && dateMatch && hairMatch && eyeMatch) {
+                        card.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                noResultsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+            
+            [searchInput, filterStatus, filterAgeMin, filterAgeMax, filterDateStart, filterDateEnd, filterHairColor, filterEyeColor].forEach(el => {
+                if(el) el.addEventListener('input', applyFiltersAndSearch);
+            });
+            
+            // --- Voice Search Logic ---
+            const micBtn = document.getElementById('mic-btn');
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                
+                micBtn.addEventListener('click', () => {
+                    micBtn.classList.add('listening');
+                    searchInput.placeholder = translations[localStorage.getItem('userLanguage') || 'en'].searching;
+                    recognition.start();
+                });
+                
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    searchInput.value = transcript;
+                    applyFiltersAndSearch(); 
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                };
+                
+                recognition.onend = () => {
+                    micBtn.classList.remove('listening');
+                     searchInput.placeholder = translations[localStorage.getItem('userLanguage') || 'en'].search_placeholder;
+                };
+
+            } else {
+                micBtn.addEventListener('click', () => {
+                     alert(translations[localStorage.getItem('userLanguage') || 'en'].no_mic);
+                });
+            }
+
+
+            // Initialize page with correct language
+            const savedLang = localStorage.getItem('userLanguage') || 'en';
+            translatePage(savedLang);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1399 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate-key="page_title">CHINH - Dashboard</title>
+    <!-- Poppins Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#fe4c25">
+    <style>
+        :root {
+            --bg-color: #e3e9ef;
+            --primary-text: #0d1122;
+            --secondary-text: #5a5f73;
+            --accent-color: #fe4c25;
+            --card-bg: #ffffff;
+            --border-color: #d1d9e6;
+            --shadow: 0 8px 24px rgba(13, 17, 34, 0.06);
+            --smooth-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --success-color: #16a34a; /* NEW: Green for success */
+        }
+
+        /* 1. Global & Reset Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            overscroll-behavior-y: contain; /* Prevents scroll chaining on newer browsers */
+        }
+        
+        body.panel-open {
+            overflow: hidden; /* Prevent background scroll when panels are open */
+        }
+
+        /* 2. Slide-in Panels (Menu & Profile) & Success Modal Overlay */
+        .blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 34, 0.3);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            z-index: 998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            /* NEW: for success modal */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .blur-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* --- MODIFICATION START: Styles for the Success Modal --- */
+        #success-modal {
+            display: none; /* Initially hidden, controlled by JS */
+        }
+
+        .success-card {
+            background: rgba(255, 255, 255, 0.4); /* Glass effect */
+            -webkit-backdrop-filter: blur(15px); /* Glass effect for Safari */
+            backdrop-filter: blur(15px); /* Glass effect */
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            cursor: default; /* Make the card not close on click */
+            animation: fadeIn 0.5s ease-out;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .success-icon .checkmark__circle {
+            stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke: var(--success-color); fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .success-icon .checkmark {
+            width: 80px; height: 80px; border-radius: 50%; display: block; stroke-width: 3; stroke: #fff;
+            stroke-miterlimit: 10; margin: 0 auto 20px; box-shadow: inset 0px 0px 0px var(--success-color);
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .success-icon .checkmark__check {
+            transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 40px var(--success-color); } }
+        
+        .success-card h1 { font-size: 24px; font-weight: 600; color: var(--primary-text); margin-bottom: 10px; }
+        .success-card p { color: var(--secondary-text); margin-bottom: 30px; font-size: 15px; line-height: 1.6; }
+
+        .btn-modal { /* Using a different class to avoid conflicts */
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; text-decoration: none;
+            font-size: 16px; font-weight: 500; transition: all 0.3s ease; width: 100%;
+            margin-bottom: 15px; box-sizing: border-box;
+        }
+
+        .btn-download {
+            background: var(--primary-text); color: white;
+            box-shadow: 0 4px 15px rgba(13, 17, 34, 0.2);
+        }
+        .btn-download:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(13, 17, 34, 0.25); }
+
+        .btn-home {
+            background: none; color: var(--primary-text);
+            border: 2px solid var(--border-color);
+        }
+        .btn-home:hover { background-color: rgba(255, 255, 255, 0.5); }
+        /* --- MODIFICATION END --- */
+        
+
+        /* --- Left Side Menu --- */
+        #side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 85%;
+            max-width: 320px;
+            height: 100vh;
+            background: var(--card-bg);
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+        }
+        
+        #side-menu.open {
+            transform: translateX(0);
+            box-shadow: 10px 0 40px rgba(13, 17, 34, 0.15);
+        }
+
+        .side-menu-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .side-menu-header img { width: 40px; height: 40px; }
+        .side-menu-header h2 { font-size: 22px; font-weight: 600; color: var(--primary-text); }
+        
+        .menu-items { list-style: none; margin-top: 30px; }
+        .menu-item details { cursor: pointer; }
+        .menu-item summary {
+            display: flex;
+            align-items: center;
+            padding: 15px 10px;
+            font-weight: 500;
+            font-size: 16px;
+            list-style: none;
+            border-radius: 8px;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .menu-item summary::-webkit-details-marker { display: none; }
+        .menu-item summary:hover {
+            background-color: var(--bg-color);
+        }
+        .menu-item summary svg { margin-right: 15px; stroke: var(--secondary-text); }
+        .menu-item summary .arrow { margin-left: auto; transition: transform 0.3s; }
+        .menu-item details[open] .arrow { transform: rotate(90deg); }
+        
+        .dropdown-content { padding: 10px 15px 15px 49px; line-height: 1.6; font-size: 14px; }
+        .dropdown-content p { color: var(--secondary-text); margin-top: 4px; }
+        .dropdown-content strong { color: var(--primary-text); font-weight: 600; }
+        .dropdown-content a {
+            display: block;
+            text-decoration: none;
+            color: var(--primary-text);
+            font-weight: 500;
+            padding: 8px 10px;
+            margin: 2px -10px;
+            border-radius: 6px;
+            transition: var(--smooth-transition);
+        }
+        .dropdown-content a:hover { color: var(--accent-color); background-color: var(--bg-color); }
+        
+        /* --- Right Profile Page --- */
+        #profile-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        #profile-page.open { transform: translateX(0); }
+        
+        .profile-page-header {
+            display: flex;
+            justify-content: flex-end; /* Pushes button to the right */
+            align-items: center;
+            position: relative; /* Context for absolute positioning */
+            height: 40px; /* Give it a fixed height */
+            /* MODIFICATION: Increased margin-bottom to create space for the overlapping photo */
+            margin-bottom: 50px; 
+        }
+        .profile-page-header h2 {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            margin: 0; /* Override default heading margin */
+        }
+        .icon-btn { background: none; border: none; cursor: pointer; padding: 5px; }
+        
+        #closeProfileBtn {
+            background-color: var(--card-bg);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: var(--smooth-transition);
+        }
+        #closeProfileBtn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .profile-header-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding-bottom: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .profile-summary {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+        }
+
+        /* --- MODIFICATION START: Styles for Profile Photo and Verified Badge --- */
+        .profile-photo-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin-top: -50px; /* Pulls the photo up, halfway out of the card */
+        }
+
+        .profile-photo-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--card-bg);
+            box-shadow: 0 5px 20px rgba(13, 17, 34, 0.1);
+            background-color: var(--card-bg);
+        }
+        
+        .verified-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 28px;
+            height: 28px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        
+        .verified-badge svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1;
+        }
+        /* --- MODIFICATION END --- */
+
+        .profile-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--primary-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .verified-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .verified-status svg {
+            width: 16px;
+            height: 16px;
+        }
+        .profile-contact-details {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            margin-top: 4px;
+        }
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: var(--secondary-text);
+            font-weight: 500;
+        }
+        .contact-item svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+        }
+        .profile-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        
+        .profile-card h3 { 
+            font-size: 18px;
+            margin-bottom: 15px; 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 10px; 
+        }
+        .profile-grid { 
+            display: flex; /* Changed to flex for stacking */
+            flex-direction: column;
+            gap: 12px; 
+        }
+        .profile-item { 
+            background: var(--bg-color); 
+            padding: 12px 15px; 
+            border-radius: 10px; 
+            font-size: 15px; 
+            color: var(--primary-text); /* Ensure value is dark */
+        }
+        .profile-item strong { color: var(--primary-text); font-weight: 600; }
+
+        /* --- START: MODIFICATION - Styles for the new Unverified Profile Prompt Card --- */
+        .verification-prompt-card {
+            background: var(--card-bg);
+            padding: 40px 25px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 0; /* Resetting margin as it's the only element now */
+        }
+        .verification-prompt-card .prompt-icon-wrapper {
+            background-color: var(--bg-color);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 1px var(--border-color);
+        }
+        .verification-prompt-card .prompt-icon-wrapper svg {
+            stroke: var(--accent-color);
+            width: 40px;
+            height: 40px;
+        }
+        .verification-prompt-card h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--primary-text);
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+        .verification-prompt-card p {
+            color: var(--secondary-text);
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 350px;
+            margin: 0 0 10px 0;
+        }
+        .verification-prompt-card .btn {
+            justify-content: center;
+            gap: 12px;
+        }
+        /* --- END: MODIFICATION - Styles for the new Unverified Profile Prompt Card --- */
+        
+        .uploads-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;} /* Added justify-content */
+        .upload-item { text-align: center; }
+        .upload-item p { margin-bottom: 8px; font-weight: 500; color: var(--secondary-text); font-size: 14px; }
+        .uploads-grid img { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; border: 3px solid var(--border-color); }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background-color: var(--primary-text); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 500; transition: var(--smooth-transition); box-shadow: 0 4px 15px rgba(13, 17, 34, 0.2); }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(13, 17, 34, 0.25); }
+        .btn-accent { background: var(--accent-color); }
+        .btn-accent:hover { box-shadow: 0 7px 20px rgba(254, 76, 37, 0.3); }
+        .btn-full { width: 100%; }
+        
+        /* 3. Main Page Content */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            z-index: 950;
+            background-color: rgba(227, 233, 239, 0.7);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(209, 217, 230, 0.5);
+        }
+        
+        #profile-btn, #menu-btn {
+            background-color: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--smooth-transition);
+        }
+        #profile-btn:hover, #menu-btn:hover {
+            background-color: white;
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+        #profile-btn svg, #menu-btn svg { display: block; }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-text);
+        }
+
+        .main-container {
+            padding: 88px 20px 100px 20px;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #0d1122, #2c3e50);
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+        .welcome-banner h1 { font-size: 24px; font-weight: 600; }
+        .welcome-banner p { font-size: 15px; opacity: 0.8; margin-top: 5px; }
+        
+        .tab-switch {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--bg-color);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            padding: 5px;
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow);
+        }
+        .tab-switch-slider {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            height: calc(100% - 10px);
+            width: calc(50% - 5px);
+            background: var(--bg-color);
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(13, 17, 34, 0.1) inset;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--secondary-text);
+            position: relative;
+            z-index: 1;
+            transition: color 0.3s;
+        }
+        .tab-btn.active {
+            color: var(--primary-text);
+        }
+        
+        #reportForm h3 { margin-bottom: 20px; font-size: 20px; text-align: left; }
+
+        .photo-upload-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .upload-box {
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--smooth-transition);
+        }
+        .upload-box:hover {
+            border-color: var(--accent-color);
+            background: #fff;
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+        .upload-box svg { stroke: var(--secondary-text); margin-bottom: 10px; transition: var(--smooth-transition); }
+        .upload-box:hover svg { stroke: var(--accent-color); }
+        .upload-box p { font-weight: 500; color: var(--secondary-text); }
+        #photo-upload { display: none; } 
+        #photo-preview { max-width: 150px; border-radius: 12px; margin: 15px auto 0; display: block; }
+        
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--primary-text);
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 15px;
+            color: var(--primary-text);
+            transition: var(--smooth-transition);
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: var(--card-bg);
+            box-shadow: 0 0 0 3px rgba(254, 76, 37, 0.1);
+        }
+        .location-input-group { position: relative; }
+        .location-input-group input { padding-right: 45px; }
+        #locationBtn { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 8px; cursor: pointer;}
+        #locationBtn svg { transition: var(--smooth-transition); }
+        #locationBtn:hover svg { stroke: var(--accent-color); }
+        
+        input[type="date"], input[type="time"] { position: relative; }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: transparent; color: transparent; cursor: pointer;
+        }
+
+        /* 4. Bottom Navigation */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 70px; background: var(--card-bg);
+            box-shadow: 0 -5px 30px rgba(13, 17, 34, 0.1);
+            border-top: 1px solid var(--border-color); border-radius: 20px 20px 0 0;
+            display: flex; justify-content: space-around; align-items: center; z-index: 900;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--secondary-text); transition: var(--smooth-transition); }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item:hover { color: var(--primary-text); }
+        .nav-item p { font-size: 12px; font-weight: 500; }
+
+        #camera-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .camera-container {
+            position: relative;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #camera-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .camera-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        #capture-btn {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+        #cancel-capture-btn {
+            background: none; border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- MODIFICATION: This #blur-overlay will now be reused by the side menu AND the success modal -->
+    <div id="blur-overlay" class="blur-overlay"></div>
+
+    <!-- MODIFICATION: The new success modal, initially hidden. -->
+    <div id="success-modal" class="blur-overlay">
+        <div class="success-card">
+            <div class="success-icon">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h1>Report Filed Successfully!</h1>
+            <p>Thank you! Your report has been recorded with ID: <strong id="report-id-placeholder">CHINH-000000</strong>.</p>
+            
+            <a id="download-report-btn" href="#" class="btn-modal btn-download">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download Report (PDF)
+            </a>
+            
+            <button type="button" onclick="closeSuccessModal()" class="btn-modal btn-home">Done</button>
+        </div>
+    </div>
+    
+    <nav id="side-menu">
+        <div class="side-menu-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="CHINH Logo">
+            <h2 data-translate-key="side_menu_title">CHINH</h2>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zM6.34 9a6 6 0 0 1 11.32 0M6.34 15a6 6 0 0 0 11.32 0"/></svg>
+                        <span data-translate-key="change_language">Change Language</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="changeLanguage('en')"><span data-translate-key="english">English</span></a> 
+                        <a href="#" onclick="changeLanguage('hi')"><span data-translate-key="hindi">हिंदी (Hindi)</span></a> 
+                        <a href="#" onclick="changeLanguage('or')"><span data-translate-key="odia">ଓଡିଆ (Odia)</span></a>
+                    </div>
+                </details>
+            </li>
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <span data-translate-key="about_us">About Us</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <strong data-translate-key="our_mission_title">Our Mission</strong>
+                        <p data-translate-key="our_mission_text">To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.</p>
+                    </div>
+                </details>
+            </li>
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <span data-translate-key="help_support">Help & Support</span>
+                         <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                     <div class="dropdown-content">
+                        <strong data-translate-key="faq_title">FAQ</strong>
+                        <p data-translate-key="faq_text">Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.</p>
+                        <br>
+                        <strong data-translate-key="contact_us_title">Contact Us</strong>
+                        <p data-translate-key="contact_us_text">For urgent assistance or queries, please reach out to our support team at support@chinh.org.</p>
+                    </div>
+                </details>
+            </li>
+        </ul>
+    </nav>
+    
+    <div id="profile-page">
+        <div class="profile-page-header">
+            <h2 data-translate-key="my_profile_title">My Profile</h2>
+            <button id="closeProfileBtn" class="icon-btn" title="Close Profile" data-translate-title="close_profile_label" aria-label="Close Profile" data-translate-aria-label="close_profile_label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        {% if profile.is_verified %}
+            <div class="profile-header-card">
+                <div class="profile-summary">
+                    <!-- MODIFICATION START: Added wrapper and verified badge -->
+                    <div class="profile-photo-wrapper">
+                        <img src="{{ url_for('static', filename='uploads/' + profile.recent_photo) }}" alt="User's photo" class="profile-photo-circle">
+                        <div class="verified-badge" title="Verified">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.965 8.521C19.988 8.353 20 8.186 20 8.017C20 6.055 18.598 4.417 16.735 4.093C15.534 2.833 13.87 2 12 2C10.13 2 8.466 2.833 7.265 4.093C5.402 4.417 4 6.055 4 8.017C4 8.186 4.012 8.353 4.035 8.521C2.804 9.172 2 10.45 2 11.916V12C2 13.654 3.346 15 5 15H6V21C6 21.552 6.448 22 7 22H17C17.552 22 18 21.552 18 21V15H19C20.654 15 22 13.654 22 12V11.916C22 10.45 21.196 9.172 19.965 8.521ZM16.324 10.23L11.518 15.035C11.383 15.171 11.196 15.25 11 15.25C10.804 15.25 10.617 15.171 10.482 15.035L7.676 12.23C7.385 11.939 7.385 11.467 7.676 11.176C7.967 10.885 8.439 10.885 8.73 11.176L11 13.445L15.269 9.176C15.56 8.885 16.032 8.885 16.323 9.176C16.614 9.467 16.615 9.939 16.324 10.23Z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- MODIFICATION END -->
+                    <h3 class="profile-name">{{ profile.aadhaar_name or profile.user_name }}</h3>
+                    <div class="verified-status">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.0001 2.00024C15.8661 2.00024 19.0001 4.25324 19.0001 7.60024V11.2002C19.0001 11.5312 19.0491 11.8512 19.1411 12.1552C19.5371 13.5652 18.9911 15.2282 17.6571 16.5622C16.3311 17.8872 14.3571 19.2592 12.1601 20.9162C12.0521 21.0002 11.9481 21.0002 11.8401 20.9162C9.64309 19.2592 7.66909 17.8872 6.34309 16.5622C5.00909 15.2282 4.46209 13.5652 4.85909 12.1552C4.95109 11.8512 5.00009 11.5312 5.00009 11.2002V7.60024C5.00009 4.25324 8.13409 2.00024 12.0001 2.00024ZM11.0001 13.9142L14.7071 10.2072C15.0981 9.81624 15.0981 9.18424 14.7071 8.79324C14.3161 8.40224 13.6841 8.40224 13.2931 8.79324L10.5001 11.5862L9.20709 10.2932C8.81609 9.90224 8.18409 9.90224 7.79309 10.2932C7.40209 10.6842 7.40209 11.3162 7.79309 11.7072L10.0861 13.9142C10.2791 14.1072 10.5311 14.2072 10.7931 14.2072C11.0551 14.2072 11.3071 14.1072 11.5001 13.9142L11.0001 13.9142Z"></path></svg>
+                        <span data-translate-key="status_verified">Verified</span>
+                    </div>
+                    <div class="profile-contact-details">
+                        <span class="contact-item">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            <span>{{ profile.aadhaar_contact }}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <h3 data-translate-key="verified_info_title">Verified Information</h3>
+                <div class="profile-grid">
+                    <div class="profile-item"><strong data-translate-key="aadhaar_name">Name:</strong> {{ profile.aadhaar_name }}</div>
+                    <div class="profile-item"><strong data-translate-key="aadhaar_relation">Relation:</strong> {{ profile.aadhaar_relation }}</div>
+                    <div class="profile-item"><strong data-translate-key="aadhaar_dob">DOB:</strong> {{ profile.aadhaar_dob }}</div>
+                    <div class="profile-item"><strong data-translate-key="aadhaar_gender">Gender:</strong> {{ profile.aadhaar_gender }}</div>
+                    <div class="profile-item"><strong data-translate-key="aadhaar_contact">Contact:</strong> {{ profile.aadhaar_contact }}</div>
+                    <div class="profile-item"><strong data-translate-key="blood_group">Blood Group:</strong> {{ profile.blood_group }}</div>
+                    <div class="profile-item" style="grid-column: 1 / -1;"><strong data-translate-key="aadhaar_address">Address:</strong> {{ profile.aadhaar_address }}</div>
+                </div>
+            </div>
+             <div class="profile-card">
+                <h3 data-translate-key="uploaded_docs_title">Uploaded Documents</h3>
+                 <div class="uploads-grid">
+                     <div class="upload-item"><p data-translate-key="aadhaar_card">Aadhaar</p><img src="{{ url_for('static', filename='uploads/' + profile.aadhaar_card) }}" alt="User's Aadhaar card"></div>
+                     <div class="upload-item"><p data-translate-key="dental_xray">Dental X-Ray</p><img src="{{ url_for('static', filename='uploads/' + profile.dental_xray) }}" alt="User's dental x-ray"></div>
+                     <div class="upload-item"><p data-translate-key="blood_report">Blood Report</p><img src="{{ url_for('static', filename='uploads/' + profile.blood_group_report) }}" alt="User's blood group report"></div>
+                 </div>
+             </div>
+        {% else %}
+            <div class="verification-prompt-card">
+                <div class="prompt-icon-wrapper">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <h2 data-translate-key="verify_profile_title">Verify Your Profile</h2>
+                <p>
+                    To unlock all features and enhance security, please complete our guided verification process.
+                </p>
+                <!-- MODIFICATION START: Changed button to an anchor tag for redirection -->
+                <a href="{{ url_for('verify_profile') }}" class="btn btn-full">
+                    <span>Start Verification</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+                <!-- MODIFICATION END -->
+            </div>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="btn btn-full btn-accent" style="margin-top: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span data-translate-key="logout_btn">Logout</span>
+        </a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <header class="header">
+            <button id="menu-btn" class="icon-btn" title="Open Menu" data-translate-title="open_menu_label" aria-label="Open Menu" data-translate-aria-label="open_menu_label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h2 class="header-title" data-translate-key="header_dashboard">Dashboard</h2>
+            <button id="profile-btn" class="icon-btn" title="Open Profile" data-translate-title="open_profile_label" aria-label="Open Profile" data-translate-aria-label="open_profile_label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </button>
+        </header>
+
+        <div class="main-container">
+            <div class="welcome-banner">
+                <h1 data-username="{{ profile.user_name }}" data-translate-key="welcome_banner_greeting">Hello, {{ profile.user_name }}!</h1>
+                <p data-translate-key="welcome_banner_sub">Welcome to CHINH. Ready to make a difference?</p>
+            </div>
+            
+            <div class="tab-switch">
+                <div id="tab-slider" class="tab-switch-slider"></div>
+                <button class="tab-btn active" onclick="switchTab('lost', this)" data-translate-key="report_lost_tab">Report Lost</button>
+                <button class="tab-btn" onclick="switchTab('found', this)" data-translate-key="report_found_tab">Report Found</button>
+            </div>
+
+            <form id="reportForm" action="{{ url_for('report') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="statusInput" name="status" value="lost">
+                
+                <h3 id="form-heading" data-translate-key="form_heading_lost">Details of Lost Person</h3>
+                
+                <div class="form-group">
+                    <label data-translate-key="photo_of_person_label">Photo of the Person</label>
+                    <div class="photo-upload-options">
+                        <div class="upload-box" onclick="document.getElementById('photo-upload').click()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            <p data-translate-key="from_gallery_btn">From Gallery</p>
+                        </div>
+                        <div class="upload-box" onclick="startCamera()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <p data-translate-key="use_camera_btn">Use Camera</p>
+                        </div>
+                    </div>
+                    <input type="file" id="photo-upload" name="photo" accept="image/*">
+                    <input type="hidden" id="captured_photo" name="captured_photo">
+                    <img id="photo-preview" src="#" alt="Preview of the uploaded photo" data-translate-alt="preview_alt_text" style="display:none;">
+                </div>
+                
+                <div class="form-group"><label for="name" data-translate-key="full_name_label">Full Name</label><input type="text" id="name" name="name" required></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group"><label for="age" data-translate-key="age_label">Age (Approx.)</label><input type="number" id="age" name="age"></div>
+                    <div class="form-group"><label for="height" data-translate-key="height_label">Height (e.g., 5' 6")</label><input type="text" id="height" name="height" data-translate-placeholder="height_placeholder" placeholder="e.g., 5' 6&quot;"></div>
+                    <div class="form-group"><label for="hair_color" data-translate-key="hair_color_label">Hair Color</label><input type="text" id="hair_color" name="hair_color"></div>
+                    <div class="form-group"><label for="eye_color" data-translate-key="eye_color_label">Eye Color</label><input type="text" id="eye_color" name="eye_color"></div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label for="identity_marks" data-translate-key="identity_marks_label">Identity Marks</label><input type="text" id="identity_marks" name="identity_marks"></div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label for="clothing_description" data-translate-key="clothing_desc_label">Clothing Description</label><textarea id="clothing_description" name="clothing_description" rows="3"></textarea></div>
+                    <div class="form-group"><label id="last-seen-label" for="last_seen_date" data-translate-key="last_seen_date_label_lost">Last Seen Date</label><input type="date" id="last_seen_date" name="last_seen_date"></div>
+                    <div class="form-group"><label for="last_seen_time" data-translate-key="time_label">Time</label><input type="time" id="last_seen_time" name="last_seen_time"></div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="last_seen_location" data-translate-key="location_label">Location</label>
+                        <div class="location-input-group">
+                            <input type="text" id="last_seen_location" name="last_seen_location" placeholder="e.g. Park Street, New Delhi" data-translate-placeholder="location_placeholder">
+                            <button type="button" id="locationBtn" onclick="getCurrentLocation()" title="Get Current Location" aria-label="Get Current Location" data-translate-title="location_btn_label" data-translate-aria-label="location_btn_label">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a5f73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label for="contact_no" data-translate-key="your_contact_label">Your Contact No.</label><input type="text" id="contact_no" name="contact_no" required></div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label for="other_details" data-translate-key="other_details_label">Other Details</label><textarea id="other_details" name="other_details" rows="3"></textarea></div>
+                </div>
+
+                <button type="submit" class="btn btn-full btn-accent" style="margin-top: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <span data-translate-key="submit_report_btn">Submit Report</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <nav class="bottom-nav">
+        <a href="{{ url_for('user_dashboard') }}" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <p data-translate-key="nav_home">Home</p>
+        </a>
+        <a href="{{ url_for('list_page') }}" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <p data-translate-key="nav_list">List</p>
+        </a>
+    </nav>
+    
+    <div id="camera-modal">
+        <div class="camera-container">
+            <video id="camera-stream" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display:none;"></canvas>
+            <div class="camera-controls">
+                <button id="cancel-capture-btn" data-translate-key="camera_cancel">Cancel</button>
+                <button id="capture-btn" title="Capture photo"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODIFICATION START: The verification page/modal has been removed from this file. -->
+    <!-- MODIFICATION END -->
+
+    <script>
+        const translations = {
+            'en': {
+                page_title: 'CHINH - Dashboard',
+                camera_cancel: 'Cancel',
+                status_verified: 'Verified',
+                unverified_profile_name: 'Unverified Profile',
+                side_menu_title: 'CHINH',
+                change_language: 'Change Language',
+                english: 'English',
+                hindi: 'हिंदी (Hindi)',
+                odia: 'ଓଡିଆ (Odia)',
+                about_us: 'About Us',
+                our_mission_title: 'Our Mission',
+                our_mission_text: 'To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.',
+                help_support: 'Help & Support',
+                faq_title: 'FAQ',
+                faq_text: 'Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.',
+                contact_us_title: 'Contact Us',
+                contact_us_text: 'For urgent assistance or queries, please reach out to our support team at support@chinh.org.',
+                my_profile_title: 'My Profile',
+                close_profile_label: 'Close Profile',
+                profile_verified: '✔ Profile Verified',
+                profile_verified_sub: 'Your identity has been confirmed.',
+                verified_info_title: 'Verified Information',
+                aadhaar_name: 'Name:',
+                aadhaar_relation: 'Relation:',
+                aadhaar_dob: 'DOB:',
+                aadhaar_gender: 'Gender:',
+                aadhaar_contact: 'Contact:',
+                blood_group: 'Blood Group:',
+                aadhaar_address: 'Address:',
+                uploaded_docs_title: 'Uploaded Documents',
+                photo: 'Photo',
+                aadhaar_card: 'Aadhaar',
+                dental_xray: 'Dental X-Ray',
+                blood_report: 'Blood Report',
+                verify_profile_title: 'Verify Your Profile',
+                verify_profile_sub: 'Upload documents to use all features.',
+                your_recent_photo: 'Your Recent Photo',
+                aadhaar_card_doc: 'Aadhaar Card',
+                blood_report_doc: 'Blood Group Report',
+                upload_and_verify_btn: 'Upload & Verify',
+                logout_btn: 'Logout',
+                header_dashboard: 'Dashboard',
+                open_menu_label: 'Open Menu',
+                open_profile_label: 'Open Profile',
+                welcome_banner_greeting: 'Hello, {name}!',
+                welcome_banner_sub: 'Welcome to CHINH. Ready to make a difference?',
+                report_lost_tab: 'Report Lost',
+                report_found_tab: 'Report Found',
+                form_heading_lost: 'Details of Lost Person',
+                form_heading_found: 'Details of Found Person',
+                photo_of_person_label: 'Photo of the Person',
+                from_gallery_btn: 'From Gallery',
+                use_camera_btn: 'Use Camera',
+                preview_alt_text: 'Preview of the uploaded photo',
+                full_name_label: 'Full Name',
+                age_label: 'Age (Approx.)',
+                height_label: 'Height (e.g., 5\' 6")',
+                height_placeholder: 'e.g., 5\' 6"',
+                hair_color_label: 'Hair Color',
+                eye_color_label: 'Eye Color',
+                identity_marks_label: 'Identity Marks',
+                clothing_desc_label: 'Clothing Description',
+                last_seen_date_label_lost: 'Last Seen Date',
+                last_seen_date_label_found: 'Found On Date',
+                time_label: 'Time',
+                location_label: 'Location',
+                location_placeholder: 'e.g. Park Street, New Delhi',
+                location_btn_label: 'Get Current Location',
+                your_contact_label: 'Your Contact No.',
+                other_details_label: 'Other Details',
+                submit_report_btn: 'Submit Report',
+                nav_home: 'Home',
+                nav_list: 'List',
+                fetching_location: 'Fetching location...',
+                location_denied: 'User denied Geolocation Request.',
+                location_unavailable: 'Location information unavailable.',
+                location_timeout: 'Location request timed out.',
+                location_error_unknown: 'An unknown error occurred.',
+                location_unsupported: 'Geolocation is not supported by this browser.',
+                webcam_alert: 'Could not access camera. Please ensure permissions are granted.'
+            },
+            'hi': {
+                page_title: 'चिन्ह - डैशबोर्ड',
+                camera_cancel: 'रद्द करें',
+                status_verified: 'सत्यापित',
+                unverified_profile_name: 'असत्यापित प्रोफ़ाइल',
+                side_menu_title: 'चिन्ह',
+                change_language: 'भाषा बदलें',
+                english: 'English',
+                hindi: 'हिंदी (Hindi)',
+                odia: 'ଓଡିଆ (Odia)',
+                about_us: 'हमारे बारे में',
+                our_mission_title: 'हमारा मिशन',
+                our_mission_text: 'जागरूक नागरिकों का एक नेटवर्क बनाना और खोए हुए व्यक्तियों को उनके परिवारों से जल्दी और सुरक्षित रूप से मिलाने के लिए प्रौद्योगिकी का लाभ उठाना।',
+                help_support: 'सहायता और समर्थन',
+                faq_title: 'अक्सर पूछे जाने वाले प्रश्न',
+                faq_text: 'रिपोर्टिंग, खोज और गोपनीयता के बारे में सामान्य प्रश्नों के उत्तर खोजने के लिए हमारे अक्सर पूछे जाने वाले प्रश्न अनुभाग पर जाएँ।',
+                contact_us_title: 'हमसे संपर्क करें',
+                contact_us_text: 'तत्काल सहायता या प्रश्नों के लिए, कृपया हमारी सहायता टीम से support@chinh.org पर संपर्क करें।',
+                my_profile_title: 'मेरी प्रोफ़ाइल',
+                close_profile_label: 'प्रोफ़ाइल बंद करें',
+                profile_verified: '✔ प्रोफ़ाइल सत्यापित',
+                profile_verified_sub: 'आपकी पहचान की पुष्टि हो गई है।',
+                verified_info_title: 'सत्यापित जानकारी',
+                aadhaar_name: 'नाम:',
+                aadhaar_relation: 'संबंध:',
+                aadhaar_dob: 'जन्म तिथि:',
+                aadhaar_gender: 'लिंग:',
+                aadhaar_contact: 'संपर्क:',
+                blood_group: 'रक्त समूह:',
+                aadhaar_address: 'पता:',
+                uploaded_docs_title: 'अपलोड किए गए दस्तावेज़',
+                photo: 'फोटो',
+                aadhaar_card: 'आधार',
+                dental_xray: 'डेंटल एक्स-रे',
+                blood_report: 'ब्लड रिपोर्ट',
+                verify_profile_title: 'अपनी प्रोफ़ाइल सत्यापित करें',
+                verify_profile_sub: 'सभी सुविधाओं का उपयोग करने के लिए दस्तावेज़ अपलोड करें।',
+                your_recent_photo: 'आपकी हाल की तस्वीर',
+                aadhaar_card_doc: 'आधार कार्ड',
+                blood_report_doc: 'ब्लड ग्रुप रिपोर्ट',
+                upload_and_verify_btn: 'अपलोड और सत्यापित करें',
+                logout_btn: 'लॉग आउट',
+                header_dashboard: 'डैशबोर्ड',
+                open_menu_label: 'मेनू खोलें',
+                open_profile_label: 'प्रोफ़ाइल खोलें',
+                welcome_banner_greeting: 'नमस्ते, {name}!',
+                welcome_banner_sub: 'चिन्ह में आपका स्वागत है। क्या आप बदलाव लाने के लिए तैयार हैं?',
+                report_lost_tab: 'खोया रिपोर्ट करें',
+                report_found_tab: 'मिला रिपोर्ट करें',
+                form_heading_lost: 'खोए हुए व्यक्ति का विवरण',
+                form_heading_found: 'मिले हुए व्यक्ति का विवरण',
+                photo_of_person_label: 'व्यक्ति का फोटो',
+                from_gallery_btn: 'गैलरी से',
+                use_camera_btn: 'कैमरा का उपयोग करें',
+                preview_alt_text: 'अपलोड की गई तस्वीर का पूर्वावलोकन',
+                full_name_label: 'पूरा नाम',
+                age_label: 'आयु (लगभग)',
+                height_label: 'ऊंचाई (जैसे, 5\' 6")',
+                height_placeholder: 'जैसे, 5\' 6"',
+                hair_color_label: 'बालों का रंग',
+                eye_color_label: 'आंखों का रंग',
+                identity_marks_label: 'पहचान के निशान',
+                clothing_desc_label: 'कपड़ों का विवरण',
+                last_seen_date_label_lost: 'अंतिम बार देखे जाने की तारीख',
+                last_seen_date_label_found: 'मिलने की तारीख',
+                time_label: 'समय',
+                location_label: 'स्थान',
+                location_placeholder: 'जैसे पार्क स्ट्रीट, नई दिल्ली',
+                location_btn_label: 'वर्तमान स्थान प्राप्त करें',
+                your_contact_label: 'आपका संपर्क नंबर',
+                other_details_label: 'अन्य विवरण',
+                submit_report_btn: 'रिपोर्ट जमा करें',
+                nav_home: 'होम',
+                nav_list: 'सूची',
+                fetching_location: 'स्थान प्राप्त किया जा रहा है...',
+                location_denied: 'उपयोगकर्ता ने जियोलोकेशन अनुरोध अस्वीकार कर दिया।',
+                location_unavailable: 'स्थान की जानकारी अनुपलब्ध है।',
+                location_timeout: 'स्थान अनुरोध का समय समाप्त हो गया।',
+                location_error_unknown: 'एक अज्ञात त्रुटि हुई।',
+                location_unsupported: 'यह ब्राउज़र जियोलोकेशन का समर्थन नहीं करता है।',
+                webcam_alert: 'कैमरा तक नहीं पहुंच सका। कृपया सुनिश्चित करें कि अनुमति दी गई है।'
+            },
+            'or': {
+                page_title: 'ଚିହ୍ନ - ଡ୍ୟାଶବୋର୍ଡ',
+                camera_cancel: 'ବାତିଲ୍ କରନ୍ତୁ',
+                status_verified: 'ସତ୍ୟାପିତ',
+                unverified_profile_name: 'ଅସତ୍ୟାପିତ ପ୍ରୋଫାଇଲ୍',
+                side_menu_title: 'ଚିହ୍ନ',
+                change_language: 'ଭାଷା ପରିବର୍ତ୍ତନ କରନ୍ତୁ',
+                english: 'English',
+                hindi: 'हिंदी (Hindi)',
+                odia: 'ଓଡିଆ (Odia)',
+                about_us: 'ଆମ ବିଷୟରେ',
+                our_mission_title: 'ଆମର ଲକ୍ଷ୍ୟ',
+                our_mission_text: 'ସଜାଗ ନାଗରିକମାନଙ୍କର ଏକ ନେଟୱାର୍କ ଗଠନ କରିବା ଏବଂ ହଜିଯାଇଥିବା ବ୍ୟକ୍ତିମାନଙ୍କୁ ଶୀଘ୍ର ଏବଂ ସୁରକ୍ଷିତ ଭାବରେ ସେମାନଙ୍କ ପରିବାର ସହିତ ପୁନର୍ମିଳିତ କରିବା ପାଇଁ ପ୍ରଯୁକ୍ତିବିଦ୍ୟାର ଲାଭ ଉଠାଇବା।',
+                help_support: 'ସହାୟତା ଓ ସମର୍ଥନ',
+                faq_title: 'ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ',
+                faq_text: 'ରିପୋର୍ଟ କରିବା, ଖୋଜିବା ଏବଂ ଗୋପନୀୟତା ବିଷୟରେ ସାଧାରଣ ପ୍ରଶ୍ନର ଉତ୍ତର ପାଇବା ପାଇଁ ଆମର ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ ବିଭାଗ ପରିଦର୍ଶନ କରନ୍ତୁ।',
+                contact_us_title: 'ଆମ ସହିତ ଯୋଗାଯੋଗ କରନ୍ତୁ',
+                contact_us_text: 'ଜରୁରୀ ସହାୟତା କିମ୍ବା ପ୍ରଶ୍ନ ପାଇଁ, ଦୟାକରି ଆମର ସହାୟତା ଦଳ ସହିତ support@chinh.org ରେ ଯୋଗାଯੋଗ କରନ୍ତୁ।',
+                my_profile_title: 'ମୋର ପ୍ରୋଫାଇଲ୍',
+                close_profile_label: 'ପ୍ରୋଫାଇଲ୍ ବନ୍ଦ କରନ୍ତୁ',
+                profile_verified: '✔ ପ୍ରୋଫାଇଲ୍ ସତ୍ୟାପିତ',
+                profile_verified_sub: 'ଆପଣଙ୍କ ପରିଚୟ ନିଶ୍ଚିତ ହୋଇଛି।',
+                verified_info_title: 'ସତ୍ୟାପିତ ସୂଚନା',
+                aadhaar_name: 'ନାମ:',
+                aadhaar_relation: 'ସମ୍ପର୍କ:',
+                aadhaar_dob: 'ଜନ୍ମ ତାରିଖ:',
+                aadhaar_gender: 'ଲିଙ୍ଗ:',
+                aadhaar_contact: 'ଯୋଗାଯੋଗ:',
+                blood_group: 'ରକ୍ତ ଗ୍ରୁପ୍:',
+                aadhaar_address: 'ଠିକଣା:',
+                uploaded_docs_title: 'ଅପଲୋଡ୍ ହୋଇଥିବା ଡକ୍ୟୁମେଣ୍ଟ୍',
+                photo: 'ଫଟୋ',
+                aadhaar_card: 'ଆଧାର',
+                dental_xray: 'ଡେଣ୍ଟାଲ୍ ଏକ୍ସ-ରେ',
+                blood_report: 'ରକ୍ତ ରିପୋର୍ଟ',
+                verify_profile_title: 'ଆପଣଙ୍କ ପ୍ରୋଫାଇଲ୍ ସତ୍ୟାପନ କରନ୍ତୁ',
+                verify_profile_sub: 'ସମସ୍ତ ସୁବିଧା ବ୍ୟବହାର କରିବା ପାଇଁ ଡକ୍ୟୁମେଣ୍ଟ୍ ଅପଲୋଡ୍ କରନ୍ତୁ।',
+                your_recent_photo: 'ଆପଣଙ୍କର ସାମ୍ପ୍ରତିକ ଫଟୋ',
+                aadhaar_card_doc: 'ଆଧାର କାର୍ଡ',
+                blood_report_doc: 'ରକ୍ତ ଗ୍ରୁପ୍ ରିପୋର୍ଟ',
+                upload_and_verify_btn: 'ଅପଲୋଡ୍ ଏବଂ ସତ୍ୟାପନ କରନ୍ତୁ',
+                logout_btn: 'ଲଗ୍ ଆଉଟ୍',
+                header_dashboard: 'ଡ୍ୟାଶବୋର୍ଡ',
+                open_menu_label: 'ମେନୁ ଖୋଲନ୍ତୁ',
+                open_profile_label: 'ପ୍ରୋଫାଇଲ୍ ଖୋଲନ୍ତୁ',
+                welcome_banner_greeting: 'ନମସ୍କାର, {name}!',
+                welcome_banner_sub: 'ଚିହ୍ନକୁ ସ୍ୱାଗତ। ଏକ ପରିବର୍ତ୍ତନ ଆଣିବାକୁ ପ୍ରସ୍ତୁତ କି?',
+                report_lost_tab: 'ହଜିଯାଇଥିବା ରିପୋର୍ଟ କରନ୍ତୁ',
+                report_found_tab: 'ମିଳିଥିବା ରିପୋର୍ଟ କରନ୍ତୁ',
+                form_heading_lost: 'ହଜିଯାଇଥିବା ବ୍ୟକ୍ତିଙ୍କ ବିବରଣୀ',
+                form_heading_found: 'ମିଳିଥିବା ବ୍ୟକ୍ତିଙ୍କ ବିବରଣୀ',
+                photo_of_person_label: 'ବ୍ୟକ୍ତିଙ୍କ ଫଟୋ',
+                from_gallery_btn: 'ଗ୍ୟାଲେରୀରୁ',
+                use_camera_btn: 'କ୍ୟାମେରା ବ୍ୟବହାର କରନ୍ତୁ',
+                preview_alt_text: 'ଅପଲୋଡ୍ ହୋଇଥିବା ଫଟୋର ପୂର୍ବାବଲୋକନ',
+                full_name_label: 'ପୂରା ନାମ',
+                age_label: 'ବୟସ (ଆନୁମାନିକ)',
+                height_label: 'ଉଚ୍ଚତା (ଯେପରି, 5\' 6")',
+                height_placeholder: 'ଯେପରି, 5\' 6"',
+                hair_color_label: 'ଚୁଟିର ରଙ୍ଗ',
+                eye_color_label: 'ଆଖିର ରଙ୍ଗ',
+                identity_marks_label: 'ପରିଚୟ ଚିହ୍ନ',
+                clothing_desc_label: 'ପୋଷାକର ବିବରଣୀ',
+                last_seen_date_label_lost: 'ଶେଷ ଦେଖାଯିବା ତାରିଖ',
+                last_seen_date_label_found: 'ମିଳିବା ତାରିଖ',
+                time_label: 'ସମୟ',
+                location_label: 'ସ୍ଥାନ',
+                location_placeholder: 'ଯେପରି ପାର୍କ ଷ୍ଟ୍ରିଟ୍, ନୂଆ ଦିଲ୍ଲୀ',
+                location_btn_label: 'ବର୍ତ୍ତମାନର ସ୍ଥାନ ପାଆନ୍ତୁ',
+                your_contact_label: 'ଆପଣଙ୍କର ଯୋଗାଯੋଗ ନଂ',
+                other_details_label: 'ଅନ୍ୟାନ୍ୟ ବିବରଣୀ',
+                submit_report_btn: 'ରିପୋର୍ଟ ଦାଖଲ କରନ୍ତୁ',
+                nav_home: 'ହୋମ୍',
+                nav_list: 'ତାଲିକା',
+                fetching_location: 'ଅବସ୍ଥାନ ଅଣାଯାଉଛି...',
+                location_denied: 'ବ୍ୟବହାରକାରୀ ଜିଓଲୋକେସନ୍ ଅନୁରୋଧକୁ ଅଗ୍ରାହ୍ୟ କଲେ।',
+                location_unavailable: 'ଅବସ୍ଥାନ ସୂଚନା ଅନୁପଲବ୍ଧ।',
+                location_timeout: 'ଅବସ୍ଥାନ ଅନୁରୋଧ ସମୟସୀମା ଅତିକ୍ରମ କଲା।',
+                location_error_unknown: 'ଏକ ଅଜ୍ଞାତ ତ୍ରୁଟି ଘଟିଲା।',
+                location_unsupported: 'ଏହି ବ୍ରାଉଜର୍ ଜିଓଲୋକେସନ୍ ସମର୍ଥନ କରେ ନାହିଁ।',
+                webcam_alert: 'କ୍ୟାମେରାକୁ ପ୍ରବେଶ କରିପାରିଲି ନାହିଁ। ଦୟାକରି ଅନୁମତି ଦିଆଯାଇଛି କି ନାହିଁ ନିଶ୍ଚିତ କରନ୍ତୁ।'
+            }
+        };
+
+        const translatePage = (lang) => {
+            const langTranslations = translations[lang] || translations['en'];
+
+            document.querySelectorAll('[data-translate-key]').forEach(el => {
+                const key = el.dataset.translateKey;
+                let translation = langTranslations[key];
+                if (key === 'welcome_banner_greeting') {
+                    const name = el.dataset.username || 'User';
+                    translation = translation.replace('{name}', name);
+                }
+                if (translation) el.innerHTML = translation;
+            });
+
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.dataset.translatePlaceholder;
+                if (langTranslations[key]) el.placeholder = langTranslations[key];
+            });
+
+            document.querySelectorAll('[data-translate-title]').forEach(el => {
+                const key = el.dataset.translateTitle;
+                if (langTranslations[key]) el.title = langTranslations[key];
+            });
+
+            document.querySelectorAll('[data-translate-aria-label]').forEach(el => {
+                const key = el.dataset.translateAriaLabel;
+                if (langTranslations[key]) el.setAttribute('aria-label', langTranslations[key]);
+            });
+             document.querySelectorAll('[data-translate-alt]').forEach(el => {
+                const key = el.dataset.translateAlt;
+                if (langTranslations[key]) el.setAttribute('alt', langTranslations[key]);
+            });
+
+            document.title = langTranslations.page_title;
+        };
+        
+        const changeLanguage = (lang) => {
+            localStorage.setItem('userLanguage', lang);
+            translatePage(lang);
+            // Close side menu after selection
+            document.getElementById('side-menu').classList.remove('open');
+            document.getElementById('blur-overlay').classList.remove('active');
+            document.body.classList.remove('panel-open');
+        };
+
+        let cameraStream;
+
+        window.startCamera = async function() {
+            const cameraModal = document.getElementById('camera-modal');
+            const video = document.getElementById('camera-stream');
+            const lang = localStorage.getItem('userLanguage') || 'en';
+            
+            cameraModal.style.display = 'flex';
+
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                    video.srcObject = cameraStream;
+                } else {
+                    throw new Error("Camera API not supported.");
+                }
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                alert(translations[lang].webcam_alert);
+                cameraModal.style.display = 'none';
+            }
+        };
+        
+        // MODIFICATION: Function to close the success modal
+        const closeSuccessModal = () => {
+            const successModal = document.getElementById('success-modal');
+            successModal.classList.remove('active');
+            // Hide after transition ends for smoother effect
+            setTimeout(() => { successModal.style.display = 'none'; }, 450);
+            document.body.classList.remove('panel-open');
+            // Clean the URL to prevent the modal from re-appearing on page refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuBtn = document.getElementById('menu-btn');
+            const profileBtn = document.getElementById('profile-btn');
+            const sideMenu = document.getElementById('side-menu');
+            const profilePage = document.getElementById('profile-page');
+            const blurOverlay = document.getElementById('blur-overlay');
+            const closeProfileBtn = document.getElementById('closeProfileBtn');
+            const openPanel = (panel, overlay) => { panel.classList.add('open'); overlay.classList.add('active'); document.body.classList.add('panel-open'); };
+            const closePanels = () => {
+                sideMenu.classList.remove('open');
+                profilePage.classList.remove('open');
+                blurOverlay.classList.remove('active');
+                document.body.classList.remove('panel-open');
+            };
+            menuBtn.addEventListener('click', (e) => { e.stopPropagation(); openPanel(sideMenu, blurOverlay); });
+            profileBtn.addEventListener('click', (e) => { e.stopPropagation(); openPanel(profilePage, blurOverlay); });
+            closeProfileBtn.addEventListener('click', closePanels);
+            blurOverlay.addEventListener('click', (e) => {
+                if (e.target === blurOverlay) closePanels();
+            });
+
+
+            const savedLang = localStorage.getItem('userLanguage') || 'en';
+            translatePage(savedLang);
+
+            window.switchTab = (status, element) => {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                element.classList.add('active');
+                const slider = document.getElementById('tab-slider');
+                if (status === 'lost') { slider.style.transform = 'translateX(0)'; } 
+                else { slider.style.transform = `translateX(${element.offsetWidth}px)`; }
+                
+                document.getElementById('statusInput').value = status;
+                const currentLang = localStorage.getItem('userLanguage') || 'en';
+                const headingKey = status === 'lost' ? 'form_heading_lost' : 'form_heading_found';
+                const lastSeenKey = status === 'lost' ? 'last_seen_date_label_lost' : 'last_seen_date_label_found';
+                
+                const formHeading = document.getElementById('form-heading');
+                formHeading.dataset.translateKey = headingKey;
+                formHeading.innerText = translations[currentLang][headingKey];
+                
+                const lastSeenLabel = document.getElementById('last-seen-label');
+                lastSeenLabel.dataset.translateKey = lastSeenKey;
+                lastSeenLabel.innerText = translations[currentLang][lastSeenKey];
+            };
+
+            const uploadInput = document.getElementById('photo-upload');
+            const previewElement = document.getElementById('photo-preview');
+            const capturedPhotoInput = document.getElementById('captured_photo');
+            uploadInput.addEventListener('change', function(event) {
+                if (event.target.files && event.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewElement.src = e.target.result;
+                        previewElement.style.display = 'block';
+                        capturedPhotoInput.value = ''; // Clear captured photo if a file is selected
+                    };
+                    reader.readAsDataURL(event.target.files[0]);
+                }
+            });
+
+            const captureBtn = document.getElementById('capture-btn');
+            const cancelCaptureBtn = document.getElementById('cancel-capture-btn');
+            const cameraModal = document.getElementById('camera-modal');
+            const video = document.getElementById('camera-stream');
+            const canvas = document.getElementById('camera-canvas');
+
+            const stopCamera = () => {
+                 if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                }
+                cameraModal.style.display = 'none';
+            };
+            
+            captureBtn.addEventListener('click', () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg');
+                
+                previewElement.src = dataUrl;
+                previewElement.style.display = 'block';
+
+                capturedPhotoInput.value = dataUrl;
+                uploadInput.value = ""; 
+
+                stopCamera();
+            });
+            cancelCaptureBtn.addEventListener('click', stopCamera);
+            
+            window.getCurrentLocation = () => {
+                const locationInput = document.getElementById('last_seen_location');
+                const lang = localStorage.getItem('userLanguage') || 'en';
+                if (navigator.geolocation) {
+                    locationInput.value = translations[lang].fetching_location;
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude; const lon = position.coords.longitude;
+                            locationInput.value = `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`;
+                        },
+                        (error) => {
+                            let errorKey;
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED: errorKey = "location_denied"; break;
+                                case error.POSITION_UNAVAILABLE: errorKey = "location_unavailable"; break;
+                                case error.TIMEOUT: errorKey = "location_timeout"; break;
+                                default: errorKey = "location_error_unknown"; break;
+                            }
+                            locationInput.value = ""; alert(`Error: ${translations[lang][errorKey]}`);
+                        }
+                    );
+                } else { alert(translations[lang].location_unsupported); }
+            };
+
+            // MODIFICATION: JavaScript logic to show and manage the success modal
+            const successModal = document.getElementById('success-modal');
+            const reportIdPlaceholder = document.getElementById('report-id-placeholder');
+            const downloadBtn = document.getElementById('download-report-btn');
+
+            // Show modal if the URL contains success parameters
+            const reportSuccess = "{{ report_success }}";
+            if (reportSuccess === 'true') {
+                const reportId = "{{ report_id }}";
+                const paddedId = reportId.padStart(6, '0');
+                
+                reportIdPlaceholder.textContent = `CHINH-${paddedId}`;
+                downloadBtn.href = `/download_report/${reportId}`;
+                
+                successModal.style.display = 'flex';
+                // Trigger transition after display is set
+                setTimeout(() => { successModal.classList.add('active'); }, 50);
+                document.body.classList.add('panel-open');
+            }
+            
+            // Close modal when clicking on the blurred background
+            successModal.addEventListener('click', (event) => {
+                if (event.target === successModal) { // Check if the click is on the overlay itself
+                    closeSuccessModal();
+                }
+            });
+
+            // --- MODIFICATION START: The verification page JS logic has been removed from this file. ---
+            // --- MODIFICATION END ---
+        });
+        
+    </script>
+</body>
+</html>

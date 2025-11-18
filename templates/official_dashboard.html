@@ -1,0 +1,649 @@
+<!-- templates/official_dashboard.html - (Copy and replace the entire file with this code) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate-key="page_title">Official Dashboard - CHINH</title>
+    <!-- Poppins Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#fe4c25">
+    <style>
+        :root {
+            --bg-color: #e3e9ef;
+            --primary-text: #0d1122;
+            --secondary-text: #5a5f73;
+            --accent-color: #fe4c25;
+            --card-bg: #ffffff;
+            --border-color: #d1d9e6;
+            --shadow: 0 8px 24px rgba(13, 17, 34, 0.06);
+            --smooth-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --success-color: #16a34a; 
+            --info-color: #0c5460;
+            --info-bg: #d1ecf1;
+            --error-color: #721c24;
+            --error-bg: #f8d7da;
+            --success-bg: #d4edda;
+        }
+
+        /* 1. Global & Reset Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            overscroll-behavior-y: contain; 
+        }
+        body.panel-open { overflow: hidden; }
+
+        /* 2. Slide-in Panels & Overlays */
+        .blur-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 17, 34, 0.3);
+            -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+            z-index: 998; opacity: 0; pointer-events: none;
+            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .blur-overlay.active { opacity: 1; pointer-events: all; }
+
+        /* --- Side Menu --- */
+        #side-menu {
+            position: fixed; top: 0; left: 0; width: 85%; max-width: 320px;
+            height: 100vh; background: var(--card-bg); z-index: 1000;
+            transform: translateX(-100%); transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 25px;
+        }
+        #side-menu.open { transform: translateX(0); box-shadow: 10px 0 40px rgba(13, 17, 34, 0.15); }
+        .side-menu-header { display: flex; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        .side-menu-header img { width: 40px; height: 40px; }
+        .side-menu-header h2 { font-size: 22px; font-weight: 600; }
+        .menu-items { list-style: none; margin-top: 30px; }
+        .menu-item details { cursor: pointer; }
+        .menu-item summary { display: flex; align-items: center; padding: 15px 10px; font-weight: 500; list-style: none; border-radius: 8px; transition: background-color 0.2s ease-in-out; }
+        .menu-item summary::-webkit-details-marker { display: none; }
+        .menu-item summary:hover { background-color: var(--bg-color); }
+        .menu-item summary svg { margin-right: 15px; stroke: var(--secondary-text); }
+        .menu-item summary .arrow { margin-left: auto; transition: transform 0.3s; }
+        .menu-item details[open] .arrow { transform: rotate(90deg); }
+        .dropdown-content { padding: 10px 15px 15px 49px; font-size: 14px; }
+        /* Copied from reference */
+        .dropdown-content p { color: var(--secondary-text); margin-top: 4px; }
+        .dropdown-content strong { color: var(--primary-text); font-weight: 600; }
+        .dropdown-content a { display: block; text-decoration: none; color: var(--primary-text); font-weight: 500; padding: 8px 10px; margin: 2px -10px; border-radius: 6px; transition: var(--smooth-transition); }
+        .dropdown-content a:hover { color: var(--accent-color); background-color: var(--bg-color); }
+
+        /* --- Profile Page --- */
+        #profile-page {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-color); z-index: 1000;
+            transform: translateX(100%); transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px; overflow-y: auto;
+        }
+        #profile-page.open { transform: translateX(0); }
+        .profile-page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .profile-page-header h2 { font-size: 24px; }
+        .icon-btn { background: none; border: none; cursor: pointer; padding: 5px; }
+        #closeProfileBtn { background-color: var(--card-bg); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: var(--smooth-transition); }
+        #closeProfileBtn:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .profile-card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: var(--shadow); }
+        .profile-icon-wrapper {
+            background-color: var(--bg-color); width: 100px; height: 100px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px auto; border: 4px solid var(--card-bg);
+            box-shadow: 0 5px 20px rgba(13, 17, 34, 0.1), 0 0 0 1px var(--border-color);
+        }
+        .profile-icon-wrapper svg { stroke: var(--primary-text); width: 50px; height: 50px; }
+        .profile-card h3 { font-size: 18px; margin-bottom: 20px; color: var(--primary-text); }
+        .profile-details p { background: var(--bg-color); padding: 12px 15px; border-radius: 10px; font-size: 15px; margin-bottom: 12px; text-align: left; }
+        .profile-details strong { font-weight: 600; color: var(--secondary-text); }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background-color: var(--primary-text); color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 500; transition: var(--smooth-transition); box-shadow: 0 4px 15px rgba(13, 17, 34, 0.2); }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(13, 17, 34, 0.25); }
+        .btn-accent { background: var(--accent-color); }
+        .btn-accent:hover { box-shadow: 0 7px 20px rgba(254, 76, 37, 0.3); }
+        .btn-full { width: 100%; }
+
+        /* 3. Main Page Content */
+        .header {
+            position: fixed; top: 0; left: 0; width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px; z-index: 950;
+            background-color: rgba(227, 233, 239, 0.7);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(209, 217, 230, 0.5);
+        }
+        #profile-btn, #menu-btn {
+            background-color: rgba(255, 255, 255, 0.6); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 8px; display: flex; align-items: center; justify-content: center;
+            transition: var(--smooth-transition);
+        }
+        #profile-btn:hover, #menu-btn:hover { background-color: white; box-shadow: var(--shadow); transform: translateY(-2px); }
+        #profile-btn svg, #menu-btn svg { display: block; }
+        .header-title { font-size: 20px; font-weight: 600; color: var(--primary-text); }
+
+        .content-wrapper { padding: 88px 20px 100px 20px; }
+        .welcome-banner {
+            background: linear-gradient(135deg, #0d1122, #2c3e50);
+            color: white; padding: 25px; border-radius: 16px; margin-bottom: 25px; box-shadow: var(--shadow);
+        }
+        .welcome-banner h1 { font-size: 24px; font-weight: 600; }
+        .welcome-banner p { font-size: 15px; opacity: 0.8; margin-top: 5px; }
+
+        .analysis-card { background-color: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: var(--shadow); }
+        .analysis-card h2 { margin-top: 0; font-size: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; color: var(--primary-text); }
+        .analysis-card p.description { color: var(--secondary-text); margin-bottom: 25px; font-size: 15px; }
+
+        /* --- MODIFICATION START: New Upload Section & Manual Search --- */
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Responsive grid */
+            gap: 20px; margin-bottom: 25px;
+        }
+        .upload-box {
+            background: var(--card-bg); border: 2px dashed var(--border-color);
+            border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;
+            transition: var(--smooth-transition); position: relative; overflow: hidden;
+        }
+        .upload-box:hover { border-color: var(--accent-color); background: #fff; transform: translateY(-5px); box-shadow: var(--shadow); }
+        .upload-box svg { stroke: var(--secondary-text); margin-bottom: 10px; transition: var(--smooth-transition); width: 32px; height: 32px;}
+        .upload-box:hover svg { stroke: var(--accent-color); }
+        .upload-box p { font-weight: 500; color: var(--secondary-text); font-size: 14px; }
+        .upload-box input[type="file"] { display: none; }
+        .upload-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none; }
+        .upload-box .file-name {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(13, 17, 34, 0.7); color: white; font-size: 11px;
+            padding: 5px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; display: none;
+        }
+        .manual-search-toggle.active { border-style: solid; border-color: var(--accent-color); }
+        /* --- MODIFICATION END: Upload Section Style --- */
+        
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 8px; color: var(--primary-text); }
+        .form-group input {
+            width: 100%; padding: 12px 15px; border: 1px solid var(--border-color);
+            background: var(--bg-color); border-radius: 8px;
+            font-family: 'Poppins', sans-serif; font-size: 15px; color: var(--primary-text);
+            transition: var(--smooth-transition);
+        }
+        .form-group input:focus {
+            outline: none; border-color: var(--accent-color); background: var(--card-bg);
+            box-shadow: 0 0 0 3px rgba(254, 76, 37, 0.1);
+        }
+        hr { border: none; border-top: 1px solid var(--border-color); margin: 25px 0; }
+        
+        #analysis-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 17, 34, 0.5); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            z-index: 1001; opacity: 0; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #analysis-loader.active { opacity: 1; pointer-events: all; }
+        .loader-icon { width: 80px; height: 80px; position: relative; }
+        .loader-icon .circle { width: 100%; height: 100%; border-radius: 50%; border: 4px solid rgba(255, 255, 255, 0.2); border-top-color: #fff; position: absolute; animation: spin 1.2s linear infinite; }
+        .loader-icon .circle:nth-child(2) { animation: spin 1.2s linear infinite reverse; }
+        .loader-icon .circle:nth-child(3) { width: 60%; height: 60%; top: 20%; left: 20%; border-top-color: var(--accent-color); animation: spin 0.8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #analysis-loader p { color: white; margin-top: 20px; font-weight: 500; font-size: 16px; letter-spacing: 0.5px; }
+
+
+        .match-card { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: center; }
+        @media (min-width: 500px) { .match-card { grid-template-columns: 150px 1fr; } }
+        .match-photo, .placeholder-photo { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid var(--card-bg); box-shadow: 0 5px 20px rgba(13, 17, 34, 0.1); margin: 0 auto; }
+        .match-details h3 { margin: 0 0 10px 0; color: var(--primary-text); font-size: 24px; text-align: center; }
+        @media (min-width: 500px) { .match-details h3 { text-align: left; } }
+        .details-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .details-grid p { margin: 0; background-color: var(--bg-color); padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--secondary-text); font-size: 14px; word-wrap: break-word; }
+        .details-grid p.full-width { grid-column: 1 / -1; }
+        .comparison-container { margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .comparison-item { border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; text-align: center; background-color: var(--bg-color); }
+        .comparison-item h5 { margin-top: 0; color: var(--primary-text); }
+        .comparison-item img { max-width: 100%; height: auto; border-radius: 4px; }
+        .no-image { color: var(--secondary-text); padding: 40px 10px; }
+
+        .flash-message-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+        .flash-message {
+            display: flex; align-items: flex-start; gap: 15px;
+            padding: 15px; border-radius: 12px;
+            background-color: var(--card-bg); border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(13, 17, 34, 0.04);
+        }
+        .flash-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .flash-message p { margin: 0; line-height: 1.5; color: var(--secondary-text); font-size: 15px; }
+        .flash-message.info .flash-icon { background-color: var(--info-bg); color: var(--info-color); }
+        .flash-message.success .flash-icon { background-color: var(--success-bg); color: var(--success-color); }
+        .flash-message.error .flash-icon { background-color: var(--error-bg); color: var(--error-color); }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
+            background: var(--card-bg); box-shadow: 0 -5px 30px rgba(13, 17, 34, 0.1);
+            border-top: 1px solid var(--border-color); border-radius: 20px 20px 0 0;
+            display: flex; justify-content: space-around; align-items: center; z-index: 900;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--secondary-text); transition: var(--smooth-transition); }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item:hover { color: var(--primary-text); }
+        .nav-item p { font-size: 12px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <div id="blur-overlay" class="blur-overlay"></div>
+    
+    <div id="analysis-loader">
+        <div class="loader-icon">
+            <div class="circle"></div><div class="circle"></div><div class="circle"></div>
+        </div>
+        <p data-translate-key="loader_text">Analyzing database... Please wait.</p>
+    </div>
+
+    <nav id="side-menu">
+        <div class="side-menu-header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="CHINH Logo">
+            <h2 data-translate-key="side_menu_title">CHINH</h2>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zM6.34 9a6 6 0 0 1 11.32 0M6.34 15a6 6 0 0 0 11.32 0"/></svg>
+                        <span data-translate-key="change_language">Change Language</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="changeLanguage('en')"><span data-translate-key="english">English</span></a> 
+                        <a href="#" onclick="changeLanguage('hi')"><span data-translate-key="hindi">हिंदी (Hindi)</span></a> 
+                        <a href="#" onclick="changeLanguage('or')"><span data-translate-key="odia">ଓଡିଆ (Odia)</span></a>
+                    </div>
+                </details>
+            </li>
+             <!-- MODIFICATION START: Added About Us & Help -->
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <span data-translate-key="about_us">About Us</span>
+                        <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                    <div class="dropdown-content">
+                        <strong data-translate-key="our_mission_title">Our Mission</strong>
+                        <p data-translate-key="our_mission_text">To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.</p>
+                    </div>
+                </details>
+            </li>
+             <li class="menu-item">
+                <details>
+                    <summary>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <span data-translate-key="help_support">Help & Support</span>
+                         <svg class="arrow" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </summary>
+                     <div class="dropdown-content">
+                        <strong data-translate-key="faq_title">FAQ</strong>
+                        <p data-translate-key="faq_text">Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.</p>
+                        <br>
+                        <strong data-translate-key="contact_us_title">Contact Us</strong>
+                        <p data-translate-key="contact_us_text">For urgent assistance or queries, please reach out to our support team at support@chinh.org.</p>
+                    </div>
+                </details>
+            </li>
+            <!-- MODIFICATION END -->
+        </ul>
+    </nav>
+    
+    <div id="profile-page">
+        <div class="profile-page-header">
+            <h2 data-translate-key="my_profile_title">My Profile</h2>
+            <button id="closeProfileBtn" class="icon-btn" title="Close Profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="profile-card" style="text-align: center;">
+            <div class="profile-icon-wrapper">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+             <h3 data-translate-key="official_details_title">Official Details</h3>
+             <div class="profile-details">
+                <p><strong><span data-translate-key="profile_name_label">Name:</span></strong> {{ current_user.name or 'N/A' }}</p>
+                <p><strong><span data-translate-key="profile_email_label">Email:</span></strong> {{ current_user.email or 'N/A' }}</p>
+             </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-full btn-accent" style="margin-top: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span data-translate-key="logout_btn">Logout</span>
+        </a>
+    </div>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <div class="main-content">
+        <header class="header">
+            <button id="menu-btn" class="icon-btn" title="Open Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h2 class="header-title" data-translate-key="header_dashboard">Official Dashboard</h2>
+            <button id="profile-btn" class="icon-btn" title="Open Profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </button>
+        </header>
+
+        <div class="content-wrapper">
+             <div class="welcome-banner">
+                <h1 data-username="{{ current_user.name }}" data-translate-key="welcome_banner_greeting">Hello, {{ current_user.name }}!</h1>
+                <p data-translate-key="welcome_banner_sub">Ready to conduct your analysis?</p>
+            </div>
+            
+            <div class="flash-message-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                           <div class="flash-icon">
+                                {% if category == 'success' %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                {% elif category == 'error' %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                {% endif %}
+                           </div>
+                           <p>{{ message | safe }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            </div>
+            
+            <div class="analysis-card">
+                 {% if match_result or no_match_found %}
+                    <!-- RESULT VIEW -->
+                    <h2 data-translate-key="result_title">Analysis Result</h2>
+                    <div id="resultContent">
+                    {% if match_result %}
+                        {% if match_type == 'profile' %}
+                            <div class="match-card">
+                                <img src="{{ url_for('static', filename='uploads/' + match_result.recent_photo) }}" alt="Matched Person" class="match-photo">
+                                <div class="match-details">
+                                    <h3>{{ match_result.aadhaar_name }}</h3>
+                                     <div class="details-grid">
+                                        <p><strong>DB Name:</strong> {{ match_result.name }}</p> <p><strong>Email:</strong> {{ match_result.email }}</p>
+                                        <p><strong>Date of Birth:</strong> {{ match_result.aadhaar_dob }}</p> <p><strong>Gender:</strong> {{ match_result.aadhaar_gender }}</p>
+                                        <p><strong>Aadhaar No:</strong> {{ match_result.aadhaar_no }}</p> <p><strong>Blood Group:</strong> {{ match_result.blood_group }}</p>
+                                        <p class="full-width"><strong>Address:</strong> {{ match_result.aadhaar_address }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif match_type == 'report' %}
+                            <div class="match-card">
+                                {% if match_result.photo_path %}
+                                    <img src="{{ url_for('static', filename='uploads/' + match_result.photo_path) }}" alt="Reported Person" class="match-photo">
+                                {% else %}
+                                     <div class="placeholder-photo" data-translate-key="no_report_image">No Image in Report</div>
+                                {% endif %}
+                                <div class="match-details">
+                                    <h3>{{ match_result.name or '[No Name Provided]' }}</h3>
+                                     <div class="details-grid">
+                                        <p><strong>Report Status:</strong> {{ match_result.status | capitalize }}</p> <p><strong>Reported Age:</strong> {{ match_result.age or 'N/A' }}</p>
+                                        <p><strong>Last Seen Date:</strong> {{ match_result.last_seen_date or 'N/A' }}</p> <p><strong>Contact No:</strong> {{ match_result.contact_no or 'N/A' }}</p>
+                                        <p class="full-width"><strong>Last Seen Location:</strong> {{ match_result.last_seen_location or 'N/A' }}</p>
+                                        <p class="full-width"><strong>Clothing:</strong> {{ match_result.clothing_description or 'N/A' }}</p>
+                                        <p class="full-width"><strong>Other Details:</strong> {{ match_result.other_details or 'N/A' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if match_type == 'profile' %}
+                        <div class="comparison-container">
+                            <h4 data-translate-key="xray_comparison_title">Dental X-Ray Comparison</h4>
+                            <div class="comparison-grid">
+                                <div class="comparison-item">
+                                    <h5 data-translate-key="uploaded_xray_title">Uploaded X-Ray</h5>
+                                    {% if uploaded_xray_filename %}<img src="{{ url_for('static', filename='uploads/temp/' + uploaded_xray_filename) }}" alt="Uploaded X-Ray">
+                                    {% else %}<p class="no-image" data-translate-key="no_xray_uploaded">No X-Ray was uploaded for analysis.</p>{% endif %}
+                                </div>
+                                <div class="comparison-item">
+                                    <h5 data-translate-key="db_xray_title">Database X-Ray</h5>
+                                    {% if match_result.dental_xray %}<img src="{{ url_for('static', filename='uploads/' + match_result.dental_xray) }}" alt="Database X-Ray">
+                                    {% else %}<p class="no-image" data-translate-key="no_xray_on_file">No X-Ray is on file for this profile.</p>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    </div>
+                    <a href="{{ url_for('official_dashboard') }}" class="btn btn-full" style="margin-top:25px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <span data-translate-key="scan_new_btn">Scan New</span>
+                    </a>
+                {% else %}
+                    <!-- FORM VIEW -->
+                    <h2 data-translate-key="form_title">Find a Person</h2>
+                    <p class="description" data-translate-key="form_description">Provide biometric data or use manual search for analysis.</p>
+                    <form action="{{ url_for('official_dashboard') }}" method="POST" enctype="multipart/form-data" id="analysisForm">
+                        <div class="upload-grid">
+                            <div class="upload-box" onclick="this.querySelector('input').click()">
+                                <img id="aadhaar_preview" class="upload-preview" alt="Aadhaar Preview">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                <p data-translate-key="upload_aadhaar">Aadhaar Card</p>
+                                <input type="file" name="aadhaar_image" accept="image/*" onchange="previewFile(this, 'aadhaar_preview', this.parentElement)"><span class="file-name"></span>
+                            </div>
+                            <div class="upload-box" onclick="this.querySelector('input').click()">
+                                <img id="person_preview" class="upload-preview" alt="Person Preview">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"></circle><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path></svg>
+                                <p data-translate-key="upload_person">Person Image</p>
+                                <input type="file" name="person_image" accept="image/*" onchange="previewFile(this, 'person_preview', this.parentElement)"><span class="file-name"></span>
+                            </div>
+                            <div class="upload-box" onclick="this.querySelector('input').click()">
+                                 <img id="xray_preview" class="upload-preview" alt="X-Ray Preview">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"></path></svg>
+                                <p data-translate-key="upload_xray">Dental X-Ray</p>
+                                <input type="file" name="xray_image" accept="image/*" onchange="previewFile(this, 'xray_preview', this.parentElement)"><span class="file-name"></span>
+                            </div>
+                            <!-- MODIFICATION: Manual Search Toggle Button -->
+                             <div class="upload-box manual-search-toggle" id="manual-search-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 12H4"/><path d="M16 6h6m-3-3v6"/></svg>
+                                <p data-translate-key="manual_search">Manual Search</p>
+                            </div>
+                        </div>
+                        
+                        <!-- MODIFICATION: Toggleable Manual Search Fields -->
+                        <div id="manual-search-fields" style="display: none;">
+                            <hr>
+                            <div class="form-group">
+                                <label for="name" data-translate-key="full_name_label">Full Name</label>
+                                <input type="text" id="name" name="name" data-translate-placeholder="name_placeholder" placeholder="e.g., Jane Doe">
+                            </div>
+                            <div class="form-group">
+                                <label for="aadhaar_no" data-translate-key="aadhaar_label">Aadhaar Number</label>
+                                <input type="text" id="aadhaar_no" name="aadhaar_no" data-translate-placeholder="aadhaar_placeholder" placeholder="e.g., 1234 5678 9012">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-full btn-accent" style="margin-top: 20px;">
+                            <!-- MODIFICATION: New Corrected Analyze Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2Z"></path><path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"></path><path d="M19.07 4.93 16 8"></path><path d="M4.93 19.07 8 16"></path><path d="m22 12-2.12.38a9.42 9.42 0 0 0-3.32-3.32L16 4.93"></path><path d="m12 2 0.38 2.12a9.42 9.42 0 0 1 3.32 3.32L19.07 8"></path><path d="M4.93 4.93 8 8"></path><path d="M19.07 19.07 16 16"></path><path d="m2 12 2.12-.38a9.42 9.42 0 0 1 3.32 3.32L8 19.07"></path><path d="m12 22-.38-2.12a9.42 9.42 0 0 0-3.32-3.32L4.93 16"></path></svg>
+                            <span data-translate-key="analyze_btn">Analyze</span>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    
+    <nav class="bottom-nav">
+        <a href="{{ url_for('official_dashboard') }}" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <p data-translate-key="nav_home">Home</p>
+        </a>
+        <a href="{{ url_for('list_official') }}" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <p data-translate-key="nav_list">List</p>
+        </a>
+    </nav>
+
+    <script>
+        // TRANSLATION ENGINE
+        const translations = {
+            'en': {
+                page_title: 'Official Dashboard - CHINH', side_menu_title: 'CHINH', change_language: 'Change Language',
+                english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', my_profile_title: 'My Profile',
+                official_details_title: 'Official Details', profile_name_label: 'Name:', profile_email_label: 'Email:',
+                logout_btn: 'Logout', header_dashboard: 'Official Dashboard', welcome_banner_greeting: 'Hello, {name}!',
+                welcome_banner_sub: 'Ready to conduct your analysis?', form_title: 'Find a Person',
+                form_description: 'Provide biometric data or use manual search for analysis.',
+                upload_aadhaar: 'Aadhaar Card', upload_person: 'Person Image', upload_xray: 'Dental X-Ray', manual_search: 'Manual Search',
+                full_name_label: 'Full Name', name_placeholder: 'e.g., Jane Doe', aadhaar_label: 'Aadhaar Number',
+                aadhaar_placeholder: 'e.g., 1234 5678 9012', analyze_btn: 'Analyze', result_title: 'Analysis Result',
+                scan_new_btn: 'Scan New',
+                no_report_image: 'No Image in Report', xray_comparison_title: 'Dental X-Ray Comparison',
+                uploaded_xray_title: 'Uploaded X-Ray', db_xray_title: 'Database X-Ray',
+                no_xray_uploaded: 'No X-Ray was uploaded for analysis.',
+                no_xray_on_file: 'No X-Ray is on file for this profile.', loader_text: 'Analyzing database... Please wait.',
+                nav_home: 'Home', nav_list: 'List',
+                about_us: 'About Us', our_mission_title: 'Our Mission',
+                our_mission_text: 'To build a network of vigilant citizens and leverage technology to reunite lost individuals with their families quickly and safely.',
+                help_support: 'Help & Support', faq_title: 'FAQ',
+                faq_text: 'Visit our Frequently Asked Questions section to find answers to common queries about reporting, searching, and privacy.',
+                contact_us_title: 'Contact Us', contact_us_text: 'For urgent assistance or queries, please reach out to our support team at support@chinh.org.',
+            }, 'hi': {
+                page_title: 'आधिकारिक डैशबोर्ड - चिन्ह', side_menu_title: 'चिन्ह', change_language: 'भाषा बदलें',
+                english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', my_profile_title: 'मेरी प्रोफ़ाइल',
+                official_details_title: 'आधिकारिक विवरण', profile_name_label: 'नाम:', profile_email_label: 'ईमेल:',
+                logout_btn: 'लॉग आउट', header_dashboard: 'आधिकारिक डैशबोर्ड', welcome_banner_greeting: 'नमस्ते, {name}!',
+                welcome_banner_sub: 'क्या आप अपना विश्लेषण करने के लिए तैयार हैं?', form_title: 'एक व्यक्ति को खोजें',
+                form_description: 'बायोमेट्रिक डेटा प्रदान करें या विश्लेषण के लिए मैन्युअल खोज का उपयोग करें।',
+                upload_aadhaar: 'आधार कार्ड', upload_person: 'व्यक्ति का चित्र', upload_xray: 'डेंटल एक्स-रे', manual_search: 'मैनुअल खोज',
+                full_name_label: 'पूरा नाम', name_placeholder: 'उदा., जेन डो', aadhaar_label: 'आधार संख्या',
+                aadhaar_placeholder: 'उदा., 1234 5678 9012', analyze_btn: 'विश्लेषण करें', result_title: 'विश्लेषण परिणाम',
+                scan_new_btn: 'नया स्कैन करें',
+                no_report_image: 'रिपोर्ट में कोई चित्र नहीं है', xray_comparison_title: 'डेंटल एक्स-रे तुलना',
+                uploaded_xray_title: 'अपलोड किया गया एक्स-रे', db_xray_title: 'डेटाबेस एक्स-रे',
+                no_xray_uploaded: 'विश्लेषण के लिए कोई एक्स-रे अपलोड नहीं किया गया था।',
+                no_xray_on_file: 'इस प्रोफ़ाइल के लिए कोई एक्स-रे फ़ाइल पर नहीं है।', loader_text: 'डेटाबेस का विश्लेषण किया जा रहा है... कृपया प्रतीक्षा करें।',
+                nav_home: 'होम', nav_list: 'सूची',
+                about_us: 'हमारे बारे में', our_mission_title: 'हमारा मिशन',
+                our_mission_text: 'जागरूक नागरिकों का एक नेटवर्क बनाना और खोए हुए व्यक्तियों को उनके परिवारों से जल्दी और सुरक्षित रूप से मिलाने के लिए प्रौद्योगिकी का लाभ उठाना।',
+                help_support: 'सहायता और समर्थन', faq_title: 'अक्सर पूछे जाने वाले प्रश्न',
+                faq_text: 'रिपोर्टिंग, खोज और गोपनीयता के बारे में सामान्य प्रश्नों के उत्तर खोजने के लिए हमारे अक्सर पूछे जाने वाले प्रश्न अनुभाग पर जाएँ।',
+                contact_us_title: 'हमसे संपर्क करें', contact_us_text: 'तत्काल सहायता या प्रश्नों के लिए, कृपया हमारी सहायता टीम से support@chinh.org पर संपर्क करें।',
+            }, 'or': {
+                page_title: 'ଅଫିସିଆଲ୍ ଡ୍ୟାଶବୋର୍ଡ - ଚିହ୍ନ', side_menu_title: 'ଚିହ୍ନ', change_language: 'ଭାଷା ପରିବର୍ତ୍ତନ କରନ୍ତୁ',
+                english: 'English', hindi: 'हिंदी (Hindi)', odia: 'ଓଡିଆ (Odia)', my_profile_title: 'ମୋର ପ୍ରୋଫାଇଲ୍',
+                official_details_title: 'ଅଫିସିଆଲ୍ ବିବରଣୀ', profile_name_label: 'ନାମ:', profile_email_label: 'ଇମେଲ୍:',
+                logout_btn: 'ଲଗ୍ ଆଉଟ୍', header_dashboard: 'ଅଫିସିଆଲ୍ ଡ୍ୟାଶବୋର୍ଡ', welcome_banner_greeting: 'ନମସ୍କାର, {name}!',
+                welcome_banner_sub: 'ଆପଣଙ୍କ ବିଶ୍ଳେଷଣ କରିବାକୁ ପ୍ରସ୍ତୁତ କି?', form_title: 'ଜଣେ ବ୍ୟକ୍ତିଙ୍କୁ ଖୋଜନ୍ତୁ',
+                form_description: 'ବିଶ୍ଳେଷଣ ପାଇଁ ବାୟୋମେଟ୍ରିକ୍ ଡାଟା ପ୍ରଦାନ କରନ୍ତୁ କିମ୍ବା ମାନୁଆଲ୍ ସନ୍ଧାନ ବ୍ୟବହାର କରନ୍ତୁ।',
+                upload_aadhaar: 'ଆଧାର କାର୍ଡ', upload_person: 'ବ୍ୟକ୍ତିଙ୍କ ଫଟୋ', upload_xray: 'ଡେଣ୍ଟାଲ୍ ଏକ୍ସ-ରେ', manual_search: 'ମାନୁଆଲ୍ ସନ୍ଧାନ',
+                full_name_label: 'ପୂରା ନାମ', name_placeholder: 'ଉଦାହରଣ, ଜେନ୍ ଡୋ', aadhaar_label: 'ଆଧାର ନମ୍ବର',
+                aadhaar_placeholder: 'ଉଦାହରଣ, 1234 5678 9012', analyze_btn: 'ବିଶ୍ଳେଷଣ କରନ୍ତୁ', result_title: 'ବିଶ୍ଳେଷଣ ଫଳାଫଳ',
+                scan_new_btn: 'ନୂଆ ସ୍କାନ୍ କରନ୍ତୁ',
+                no_report_image: 'ରିପୋର୍ଟରେ କୌଣିସି ଛବି ନାହିଁ', xray_comparison_title: 'ଡେଣ୍ଟାଲ୍ ଏକ୍ସ-ରେ ତୁଳନା',
+                uploaded_xray_title: 'ଅପଲୋଡ୍ ହୋଇଥିବା ଏକ୍ସ-ରେ', db_xray_title: 'ଡାଟାବେସ୍ ଏକ୍ସ-ରେ',
+                no_xray_uploaded: 'ବିଶ୍ଳେଷଣ ପାଇଁ କୌଣସି ଏକ୍ସ-ରେ ଅପଲୋଡ୍ ହୋଇନାହିଁ।',
+                no_xray_on_file: 'ଏହି ପ୍ରୋଫାଇଲ୍ ପାଇଁ କୌଣସି ଏକ୍ସ-ରେ ଫାଇଲ୍‌ରେ ନାହିଁ।', loader_text: 'ଡାଟାବେସ୍ ବିଶ୍ଳେଷଣ କରାଯାଉଛି... ଦୟାକରି ଅପେକ୍ଷା କରନ୍ତୁ।',
+                nav_home: 'ହୋମ୍', nav_list: 'ତାଲିକା',
+                about_us: 'ଆମ ବିଷୟରେ', our_mission_title: 'ଆମର ଲକ୍ଷ୍ୟ',
+                our_mission_text: 'ସଜାଗ ନାଗରିକମାନଙ୍କର ଏକ ନେଟୱାର୍କ ଗଠନ କରିବା ଏବଂ ହଜିଯାଇଥିବା ବ୍ୟକ୍ତିମାନଙ୍କୁ ଶୀଘ୍ର ଏବଂ ସୁରକ୍ଷିତ ଭାବରେ ସେମାନଙ୍କ ପରିବାର ସହିତ ପୁନର୍ମିଳିତ କରିବା ପାଇଁ ପ୍ରଯୁକ୍ତିବିଦ୍ୟାର ଲାଭ ଉଠାଇବା।',
+                help_support: 'ସହାୟତା ଓ ସମର୍ଥନ', faq_title: 'ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ',
+                faq_text: 'ରିପୋର୍ଟ କରିବା, ଖୋଜିବା ଏବଂ ଗୋପନୀୟତା ବିଷୟରେ ସାଧାରଣ ପ୍ରଶ୍ନର ଉତ୍ତର ପାଇବା ପାଇଁ ଆମର ବାରମ୍ବାର ପଚରାଯାଉଥିବା ପ୍ରଶ୍ନ ବିଭାଗ ପରିଦର୍ଶନ କରନ୍ତୁ।',
+                contact_us_title: 'ଆମ ସହିତ ଯୋଗାଯੋଗ କରନ୍ତୁ', contact_us_text: 'ଜରୁରୀ ସହାୟତା କିମ୍ବା ପ୍ରଶ୍ନ ପାଇଁ, ଦୟାକରି ଆମର ସହାୟତା ଦଳ ସହିତ support@chinh.org ରେ ଯୋଗାଯੋଗ କରନ୍ତୁ।',
+            }
+        };
+
+        const translatePage = (lang) => {
+            const langTranslations = translations[lang] || translations['en'];
+            document.querySelectorAll('[data-translate-key]').forEach(el => {
+                const key = el.dataset.translateKey;
+                let translation = langTranslations[key];
+                if (key === 'welcome_banner_greeting') {
+                    const name = el.dataset.username || 'Official';
+                    translation = translation.replace('{name}', name);
+                }
+                if (translation) el.innerHTML = translation;
+            });
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.dataset.translatePlaceholder;
+                if (langTranslations[key]) el.placeholder = langTranslations[key];
+            });
+            document.title = langTranslations.page_title;
+        };
+        
+        const changeLanguage = (lang) => {
+            localStorage.setItem('userLanguage', lang);
+            translatePage(lang);
+            document.getElementById('side-menu').classList.remove('open');
+            document.getElementById('blur-overlay').classList.remove('active');
+            document.body.classList.remove('panel-open');
+        };
+
+        function previewFile(input, previewId, parentBox) {
+            const file = input.files[0];
+            const preview = document.getElementById(previewId);
+            const fileNameSpan = parentBox.querySelector('.file-name');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    fileNameSpan.textContent = file.name;
+                    fileNameSpan.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                 preview.style.display = 'none';
+                 fileNameSpan.style.display = 'none';
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Panel Controls
+            const menuBtn = document.getElementById('menu-btn');
+            const profileBtn = document.getElementById('profile-btn');
+            const sideMenu = document.getElementById('side-menu');
+            const profilePage = document.getElementById('profile-page');
+            const blurOverlay = document.getElementById('blur-overlay');
+            const closeProfileBtn = document.getElementById('closeProfileBtn');
+            const openPanel = (panel) => { panel.classList.add('open'); blurOverlay.classList.add('active'); document.body.classList.add('panel-open'); };
+            const closePanels = () => {
+                sideMenu.classList.remove('open'); profilePage.classList.remove('open');
+                blurOverlay.classList.remove('active'); document.body.classList.remove('panel-open');
+            };
+            menuBtn.addEventListener('click', () => openPanel(sideMenu));
+            profileBtn.addEventListener('click', () => openPanel(profilePage));
+            closeProfileBtn.addEventListener('click', closePanels);
+            blurOverlay.addEventListener('click', (e) => { if (e.target === blurOverlay) closePanels(); });
+
+            // Initial Translation
+            const savedLang = localStorage.getItem('userLanguage') || 'en';
+            translatePage(savedLang);
+            
+            // Form Submission Loader
+            const analysisForm = document.getElementById('analysisForm');
+            if(analysisForm){
+                analysisForm.addEventListener('submit', function() {
+                    document.getElementById('analysis-loader').classList.add('active');
+                });
+            }
+
+            // Manual Search Toggle Logic
+            const manualSearchBtn = document.getElementById('manual-search-btn');
+            const manualSearchFields = document.getElementById('manual-search-fields');
+            if(manualSearchBtn){
+                manualSearchBtn.addEventListener('click', function() {
+                    const isVisible = manualSearchFields.style.display === 'block';
+                    manualSearchFields.style.display = isVisible ? 'none' : 'block';
+                    manualSearchBtn.classList.toggle('active', !isVisible);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

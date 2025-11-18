@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate-key="page_title">CHINH - Profile Verification</title>
+    <!-- Poppins Font (Copied from dashboard for theme matching) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#fe4c25">
+    <style>
+        :root {
+            --bg-color: #e3e9ef;
+            --primary-text: #0d1122;
+            --secondary-text: #5a5f73;
+            --accent-color: #fe4c25;
+            --card-bg: #ffffff;
+            --border-color: #d1d9e6;
+            --shadow: 0 8px 24px rgba(13, 17, 34, 0.06);
+            --smooth-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --success-color: #16a34a;
+        }
+
+        /* 1. Global & Reset Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html { 
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .verification-container {
+            width: 100%;
+            max-width: 650px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .language-switcher {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--secondary-text);
+            cursor: pointer;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 6px;
+            transition: var(--smooth-transition);
+        }
+
+        .lang-btn.active {
+            color: var(--accent-color);
+            background-color: rgba(254, 76, 37, 0.1);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 8px rgba(13,17,34,0.04) inset;
+            height: 8px;
+            border-radius: 99px;
+            margin-bottom: 15px; 
+            position: relative;
+            overflow: hidden;
+        }
+        #progress-bar {
+            width: 0%; 
+            height: 100%;
+            background-color: var(--accent-color);
+            border-radius: 99px;
+            transition: width 0.4s ease-in-out;
+            position: relative;
+        }
+        #progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: translateX(-100%) skewX(-30deg);
+            animation: shine 2.5s infinite linear;
+        }
+
+        @keyframes shine {
+            100% {
+                transform: translateX(100%) skewX(-30deg);
+            }
+        }
+
+        .verification-step {
+            display: none; 
+            animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            margin-top: 15px;
+        }
+        
+        .verification-step.active {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-header { margin-bottom: 25px; }
+        .step-header h2 { font-size: 20px; font-weight: 600; margin-bottom: 5px; }
+        .step-header p { color: var(--secondary-text); font-size: 15px; line-height: 1.6; }
+
+        .camera-capture-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: var(--smooth-transition);
+        }
+        
+        .camera-capture-area .photo-preview {
+            display: none;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .camera-capture-area .photo-preview img {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 12px;
+            border: 3px solid var(--border-color);
+            object-fit: contain;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: nowrap; /* Keep side-by-side */
+        }
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            /* Changed to be more flexible */
+            flex: 1;
+            max-width: 140px;
+            height: 120px;
+            padding: 15px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--smooth-transition);
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+        }
+        .action-btn svg {
+            width: 36px;
+            height: 36px;
+            stroke: var(--secondary-text);
+            transition: var(--smooth-transition);
+        }
+        .action-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 7px 20px rgba(254, 76, 37, 0.2);
+            transform: translateY(-5px) scale(1.03);
+            border-color: var(--accent-color);
+        }
+        .action-btn:hover svg { stroke: white; }
+        
+        .step-footer {
+            margin-top: 30px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            background-color: var(--primary-text); color: white;
+            padding: 12px 25px; border: none; border-radius: 10px;
+            cursor: pointer; text-decoration: none; font-size: 16px; font-weight: 500;
+            transition: var(--smooth-transition);
+            box-shadow: 0 4px 15px rgba(13, 17, 34, 0.2);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(13, 17, 34, 0.25);
+        }
+        .btn:disabled {
+            background-color: #b0b4c2;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #loader, #success-state {
+            display: none; 
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .icon-loader { width: 80px; height: 80px; position: relative; margin: 0 auto 25px; }
+        .icon-loader .outer-ring, .icon-loader .middle-ring, .icon-loader .inner-ring { position: absolute; border: 4px solid transparent; border-radius: 50%; animation: rotate 2s linear infinite; }
+        .icon-loader .outer-ring { top: 0; left: 0; width: 80px; height: 80px; border-top-color: var(--accent-color); }
+        .icon-loader .middle-ring { top: 10px; left: 10px; width: 60px; height: 60px; border-right-color: var(--primary-text); animation-delay: 0.2s; }
+        .icon-loader .inner-ring { top: 20px; left: 20px; width: 40px; height: 40px; border-bottom-color: var(--accent-color); animation-delay: 0.4s; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #loader p { font-size: 18px; font-weight: 500; color: var(--secondary-text); }
+        
+        .success-icon .checkmark__circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke: var(--success-color); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .success-icon .checkmark { width: 80px; height: 80px; border-radius: 50%; display: block; stroke-width: 3; stroke: #fff; stroke-miterlimit: 10; margin: 0 auto 20px; box-shadow: inset 0px 0px 0px var(--success-color); animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
+        .success-icon .checkmark__check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 40px var(--success-color); } }
+        
+        #success-state h1 { font-size: 24px; font-weight: 600; color: var(--primary-text); margin-bottom: 10px; }
+        #success-state p { color: var(--secondary-text); margin-bottom: 30px; font-size: 15px; line-height: 1.6; }
+
+        #camera-modal {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1001; display: none;
+            align-items: center; justify-content: center;
+        }
+        .camera-container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        #camera-stream { width: 100%; height: 100%; object-fit: cover; }
+        .camera-controls {
+            position: absolute; bottom: 30px; left: 50%;
+            transform: translateX(-50%); display: flex;
+            align-items: center; gap: 20px;
+        }
+        #capture-btn {
+            width: 70px; height: 70px; border-radius: 50%;
+            background-color: white; border: 4px solid rgba(255, 255, 255, 0.5); cursor: pointer;
+        }
+        #cancel-capture-btn {
+            background: none; border: none; color: white;
+            font-size: 16px; cursor: pointer; font-weight: 500; padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    
+    <main class="verification-container">
+        <!-- This form will now ONLY act as a container, submission is handled by JavaScript -->
+        <form id="verificationForm">
+            
+            <div class="header">
+                <h1 data-translate-key="header_title">Profile Verification</h1>
+            </div>
+            
+            <div class="language-switcher">
+                <button type="button" class="lang-btn active" onclick="changeLanguage('en')">English</button>
+                <button type="button" class="lang-btn" onclick="changeLanguage('hi')">हिंदी</button>
+                <button type="button" class="lang-btn" onclick="changeLanguage('or')">ଓଡିଆ</button>
+            </div>
+
+            <div class="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+
+            <!-- Step 1: Recent Photo -->
+            <div id="step-1" class="verification-step active">
+                <div class="step-header">
+                    <h2 data-translate-key="step1_title">Step 1 of 4: Your Recent Photo</h2>
+                    <p data-translate-key="step1_desc">Please capture a clear, recent photograph of yourself.</p>
+                </div>
+                <div class="camera-capture-area">
+                    <div id="preview-container-1" class="photo-preview">
+                        <img id="preview-1" src="#" alt="Photo Preview" data-translate-alt="preview_alt"/>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="action-btn camera-btn-trigger" onclick="startCamera(1)">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span data-translate-key="capture_photo_btn">Capture Photo</span>
+                        </button>
+                         <button type="button" class="action-btn upload-btn-trigger" data-step="1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span data-translate-key="upload_photo_btn">Upload Photo</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input-1" class="file-input" name="recent_photo" accept="image/*" style="display: none;">
+                </div>
+                <!-- REMOVED HIDDEN BASE64 INPUT -->
+                <div class="step-footer">
+                    <button type="button" class="btn" id="next-1" disabled data-translate-key="next_step_btn">Next Step &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Dental X-Ray -->
+            <div id="step-2" class="verification-step">
+                <div class="step-header">
+                    <h2 data-translate-key="step2_title">Step 2 of 4: Dental X-Ray</h2>
+                    <p data-translate-key="step2_desc">This helps in unique identification. Capture a clear image of the X-Ray.</p>
+                </div>
+                <div class="camera-capture-area">
+                    <div id="preview-container-2" class="photo-preview">
+                        <img id="preview-2" src="#" alt="X-Ray Preview" data-translate-alt="xray_preview_alt"/>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="action-btn camera-btn-trigger" onclick="startCamera(2)">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span data-translate-key="capture_xray_btn">Capture X-Ray</span>
+                        </button>
+                         <button type="button" class="action-btn upload-btn-trigger" data-step="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span data-translate-key="upload_xray_btn">Upload X-Ray</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input-2" class="file-input" name="dental_xray" accept="image/*" style="display: none;">
+                </div>
+                <!-- REMOVED HIDDEN BASE64 INPUT -->
+                <div class="step-footer">
+                    <button type="button" class="btn" id="next-2" disabled data-translate-key="next_step_btn">Next Step &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Aadhaar Card -->
+            <div id="step-3" class="verification-step">
+                <div class="step-header">
+                    <h2 data-translate-key="step3_title">Step 3 of 4: Aadhaar Card</h2>
+                    <p data-translate-key="step3_desc">Capture a clear image of the front side of your Aadhaar card.</p>
+                </div>
+                 <div class="camera-capture-area">
+                    <div id="preview-container-3" class="photo-preview">
+                        <img id="preview-3" src="#" alt="Aadhaar Preview" data-translate-alt="aadhaar_preview_alt"/>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="action-btn camera-btn-trigger" onclick="startCamera(3)">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span data-translate-key="capture_aadhaar_btn">Capture Aadhaar</span>
+                        </button>
+                         <button type="button" class="action-btn upload-btn-trigger" data-step="3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span data-translate-key="upload_aadhaar_btn">Upload Aadhaar</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input-3" class="file-input" name="aadhaar_card" accept="image/*" style="display: none;">
+                </div>
+                <!-- REMOVED HIDDEN BASE64 INPUT -->
+                <div class="step-footer">
+                    <button type="button" class="btn" id="next-3" disabled data-translate-key="next_step_btn">Next Step &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Blood Group Report -->
+            <div id="step-4" class="verification-step">
+                <div class="step-header">
+                    <h2 data-translate-key="step4_title">Step 4 of 4: Blood Group Report</h2>
+                    <p data-translate-key="step4_desc">Crucial for medical emergencies. Capture a clear photo of your report.</p>
+                </div>
+                <div class="camera-capture-area">
+                    <div id="preview-container-4" class="photo-preview">
+                        <img id="preview-4" src="#" alt="Blood Report Preview" data-translate-alt="blood_report_preview_alt"/>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="button" class="action-btn camera-btn-trigger" onclick="startCamera(4)">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span data-translate-key="capture_report_btn">Capture Report</span>
+                        </button>
+                         <button type="button" class="action-btn upload-btn-trigger" data-step="4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span data-translate-key="upload_report_btn">Upload Report</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input-4" class="file-input" name="blood_group_report" accept="image/*" style="display: none;">
+                </div>
+                <!-- REMOVED HIDDEN BASE64 INPUT -->
+                <div class="step-footer">
+                    <button type="submit" class="btn" id="submit-btn" disabled data-translate-key="finish_btn">Finish Verification</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Loader State -->
+        <div id="loader">
+            <div class="icon-loader">
+                <div class="outer-ring"></div><div class="middle-ring"></div><div class="inner-ring"></div>
+            </div>
+            <p data-translate-key="loader_text">Verifying your documents...</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="success-state">
+            <div class="success-icon">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h1 data-translate-key="success_title">Verified Successfully!</h1>
+            <p data-translate-key="success_desc">Your profile is now verified. You can now access all features of CHINH. Thank you for your cooperation.</p>
+            <a href="{{ url_for('user_dashboard') }}" class="btn" data-translate-key="success_dashboard_btn">Go to Dashboard</a>
+        </div>
+    </main>
+    
+    <!-- Camera Modal (from dashboard.html) -->
+    <div id="camera-modal">
+        <div class="camera-container">
+            <video id="camera-stream" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display:none;"></canvas>
+            <div class="camera-controls">
+                <button id="cancel-capture-btn" data-translate-key="camera_cancel">Cancel</button>
+                <button id="capture-btn" title="Capture photo"></button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const translations = {
+        'en': { page_title: 'CHINH - Profile Verification', header_title: 'Profile Verification', step1_title: 'Step 1 of 4: Your Recent Photo', step1_desc: 'Please capture a clear, recent photograph of yourself.', capture_photo_btn: 'Capture Photo', upload_photo_btn: 'Upload Photo', retake_photo_btn: 'Retake Photo', change_photo_btn: 'Change Photo', step2_title: 'Step 2 of 4: Dental X-Ray', step2_desc: 'This helps in unique identification. Capture a clear image of the X-Ray.', capture_xray_btn: 'Capture X-Ray', upload_xray_btn: 'Upload X-Ray', retake_xray_btn: 'Retake X-Ray', change_xray_btn: 'Change X-Ray', step3_title: 'Step 3 of 4: Aadhaar Card', step3_desc: 'Capture a clear image of the front side of your Aadhaar card.', capture_aadhaar_btn: 'Capture Aadhaar', upload_aadhaar_btn: 'Upload Aadhaar', retake_aadhaar_btn: 'Retake Aadhaar', change_aadhaar_btn: 'Change Aadhaar', step4_title: 'Step 4 of 4: Blood Group Report', step4_desc: 'Crucial for medical emergencies. Capture a clear photo of your report.', capture_report_btn: 'Capture Report', upload_report_btn: 'Upload Report', retake_report_btn: 'Retake Report', change_report_btn: 'Change Report', next_step_btn: 'Next Step &rarr;', finish_btn: 'Finish Verification', loader_text: 'Verifying your documents...', success_title: 'Verified Successfully!', success_desc: 'Your profile is now verified. You can now access all features of CHINH. Thank you for your cooperation.', success_dashboard_btn: 'Go to Dashboard', camera_cancel: 'Cancel', preview_alt: 'Photo Preview', xray_preview_alt: 'X-Ray Preview', aadhaar_preview_alt: 'Aadhaar Preview', blood_report_preview_alt: 'Blood Report Preview', webcam_alert: 'Could not access camera. Please ensure permissions are granted.' },
+        'hi': { page_title: 'चिन्ह - प्रोफ़ाइल सत्यापन', header_title: 'प्रोफ़ाइल सत्यापन', step1_title: 'चरण 1/4: आपकी हाल की तस्वीर', step1_desc: 'कृपया अपनी एक स्पष्ट, हाल की तस्वीर खींचें।', capture_photo_btn: 'तस्वीर खींचें', upload_photo_btn: 'फोटो अपलोड करें', retake_photo_btn: 'फिर से खींचें', change_photo_btn: 'फोटो बदलें', step2_title: 'चरण 2/4: डेंटल एक्स-रे', step2_desc: 'यह अद्वितीय पहचान में मदद करता है। एक्स-रे की एक स्पष्ट तस्वीर खींचें।', capture_xray_btn: 'एक्स-रे खींचें', upload_xray_btn: 'एक्स-रे अपलोड करें', retake_xray_btn: 'फिर से खींचें', change_xray_btn: 'एक्स-रे बदलें', step3_title: 'चरण 3/4: आधार कार्ड', step3_desc: 'अपने आधार कार्ड के सामने वाले हिस्से की एक स्पष्ट तस्वीर खींचें।', capture_aadhaar_btn: 'आधार खींचें', upload_aadhaar_btn: 'आधार अपलोड करें', retake_aadhaar_btn: 'फिर से खींचें', change_aadhaar_btn: 'आधार बदलें', step4_title: 'चरण 4/4: ब्लड ग्रुप रिपोर्ट', step4_desc: 'चिकित्सा आपात स्थिति के लिए महत्वपूर्ण। अपनी रिपोर्ट की एक स्पष्ट तस्वीर खींचें।', capture_report_btn: 'रिपोर्ट खींचें', upload_report_btn: 'रिपोर्ट अपलोड करें', retake_report_btn: 'फिर से खींचें', change_report_btn: 'रिपोर्ट बदलें', next_step_btn: 'अगला चरण &rarr;', finish_btn: 'सत्यापन समाप्त करें', loader_text: 'आपके दस्तावेज़ों का सत्यापन हो रहा है...', success_title: 'सफलतापूर्वक सत्यापित!', success_desc: 'आपकी प्रोफ़ाइल अब सत्यापित है। अब आप चिन्ह की सभी सुविधाओं का उपयोग कर सकते हैं। आपके सहयोग के लिए धन्यवाद।', success_dashboard_btn: 'डैशबोर्ड पर जाएं', camera_cancel: 'रद्द करें', preview_alt: 'फोटो पूर्वावलोकन', xray_preview_alt: 'एक्स-रे पूर्वावलोकन', aadhaar_preview_alt: 'आधार पूर्वावलोकन', blood_report_preview_alt: 'ब्लड रिपोर्ट पूर्वावलोकन', webcam_alert: 'कैमरा तक नहीं पहुंच सका। कृपया सुनिश्चित करें कि अनुमति दी गई है।' },
+        'or': { page_title: 'ଚିହ୍ନ - ପ୍ରୋଫାଇଲ୍ ସତ୍ୟାପନ', header_title: 'ପ୍ରୋଫାଇଲ୍ ସତ୍ୟାପନ', step1_title: 'ପଦକ୍ଷେପ 1/4: ଆପଣଙ୍କ ସାମ୍ପ୍ରତିକ ଫଟୋ', step1_desc: 'ଦୟାକରି ନିଜର ଏକ ସ୍ପଷ୍ଟ, ସାମ୍ପ୍ରତିକ ଫଟୋ ଉଠାନ୍ତୁ।', capture_photo_btn: 'ଫଟୋ ଉଠାନ୍ତୁ', upload_photo_btn: 'ଫଟୋ ଅପଲୋଡ୍ କରନ୍ତୁ', retake_photo_btn: 'ପୁନର୍ବାର ଉଠାନ୍ତୁ', change_photo_btn: 'ଫଟୋ ବଦଳାନ୍ତୁ', step2_title: 'ପଦକ୍ଷେପ 2/4: ଡେଣ୍ଟାଲ୍ ଏକ୍ସ-ରେ', step2_desc: 'ଏହା ଅନନ୍ୟ ପରିଚୟରେ ସାହାଯ୍ୟ କରେ। ଏକ୍ସ-ରେ ର ଏକ ସ୍ପଷ୍ଟ ଚିତ୍ର ଉଠାନ୍ତୁ।', capture_xray_btn: 'ଏକ୍ସ-ରେ ଉଠାନ୍ତୁ', upload_xray_btn: 'ଏକ୍ସ-ରେ ଅପଲୋଡ୍ କରନ୍ତୁ', retake_xray_btn: 'ପୁନର୍ବାର ଉଠାନ୍ତୁ', change_xray_btn: 'ଏକ୍ସ-ରେ ବଦଳାନ୍ତୁ', step3_title: 'ପଦକ୍ଷେପ 3/4: ଆଧାର କାର୍ଡ', step3_desc: 'ଆପଣଙ୍କ ଆଧାର କାର୍ଡର ସାମ୍ନା ପଟର ଏକ ସ୍ପଷ୍ଟ ଚିତ୍ର ଉଠାନ୍ତୁ।', capture_aadhaar_btn: 'ଆଧାର ଉଠାନ୍ତୁ', upload_aadhaar_btn: 'ଆଧାର ଅପଲୋଡ୍ କରନ୍ତୁ', retake_aadhaar_btn: 'ପୁନର୍ବାର ଉଠାନ୍ତୁ', change_aadhaar_btn: 'ଆଧାର ବଦଳାନ୍ତୁ', step4_title: 'ପଦକ୍ଷେପ 4/4: ରକ୍ତ ଗ୍ରୁପ୍ ରିପୋର୍ଟ', step4_desc: 'ଡାକ୍ତରୀ ଜରୁରୀକାଳୀନ ପରିସ୍ଥିତି ପାଇଁ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ। ଆପଣଙ୍କ ରିପୋର୍ଟର ଏକ ସ୍ପଷ୍ଟ ଫଟୋ ଉଠାନ୍ତୁ।', capture_report_btn: 'ରିପୋର୍ଟ ଉଠାନ୍ତୁ', upload_report_btn: 'ରିପୋର୍ଟ ଅପଲୋଡ୍ କରନ୍ତୁ', retake_report_btn: 'ପୁନର୍ବାର ଉଠାନ୍ତୁ', change_report_btn: 'ରିପୋର୍ଟ ବଦଳାନ୍ତୁ', next_step_btn: 'ପରବର୍ତ୍ତୀ ପଦକ୍ଷେପ &rarr;', finish_btn: 'ସତ୍ୟାପନ ସମାପ୍ତ କରନ୍ତୁ', loader_text: 'ଆପଣଙ୍କ ଦସ୍ତାବିଜଗୁଡିକ ଯାଞ୍ଚ କରାଯାଉଛି...', success_title: 'ସଫଳତାର ସହ ସତ୍ୟାପିତ!', success_desc: 'ଆପଣଙ୍କ ପ୍ରୋଫାଇଲ୍ ବର୍ତ୍ତମାନ ସତ୍ୟାପିତ। ଆପଣ ବର୍ତ୍ତମାନ ଚିହ୍ନର ସମସ୍ତ ବୈଶିଷ୍ଟ୍ୟକୁ ବ୍ୟବହାର କରିପାରିବେ। ଆପଣଙ୍କ ସହଯୋଗ ପାଇଁ ଧନ୍ୟବାଦ।', success_dashboard_btn: 'ଡ୍ୟାଶବୋର୍ଡକୁ ଯାଆନ୍ତୁ', camera_cancel: 'ବାତିଲ୍ କରନ୍ତୁ', preview_alt: 'ଫଟୋ ପୂର୍ବାବଲୋକନ', xray_preview_alt: 'ଏକ୍ସ-ରେ ପୂର୍ବାବଲୋକନ', aadhaar_preview_alt: 'ଆଧାର ପୂର୍ବାବଲୋକନ', blood_report_preview_alt: 'ରକ୍ତ ରିପୋର୍ଟ ପୂର୍ବାବଲୋକନ', webcam_alert: 'କ୍ୟାମେରାକୁ ପ୍ରବେଶ କରିପାରିଲି ନାହିଁ। ଦୟାକରି ଅନୁମତି ଦିଆଯାଇଛି କି ନାହିଁ ନିଶ୍ଚିତ କରନ୍ତୁ।' }
+    };
+
+    const translatePage = (lang) => { /* ... (This function remains the same) ... */ };
+    const changeLanguage = (lang) => { /* ... (This function remains the same) ... */ };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const totalSteps = 4;
+        let currentStep = 1;
+        let activeCameraStep = null;
+        let cameraStream;
+
+        // NEW: This object will store the actual File or Blob data for submission
+        const fileDataStore = { 1: null, 2: null, 3: null, 4: null };
+
+        const progressBar = document.getElementById('progress-bar');
+        const verificationForm = document.getElementById('verificationForm');
+        
+        const showStep = (stepNumber) => {
+            document.querySelectorAll('.verification-step').forEach(step => step.classList.remove('active'));
+            document.getElementById(`step-${stepNumber}`).classList.add('active');
+            const progress = ((stepNumber - 1) / totalSteps) * 100;
+            progressBar.style.width = `${progress}%`;
+        };
+        
+        // --- START OF CRITICAL CHANGE ---
+        // Helper function to convert a Base64 string from the camera into a Blob
+        const dataURLtoBlob = (dataurl) => {
+            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        }
+        
+        // This function no longer saves Base64. It saves the actual Blob or File.
+        const processImage = (step, data) => {
+            let imageUrl;
+            if (data instanceof Blob || data instanceof File) {
+                fileDataStore[step] = data; // Store the actual Blob/File
+                imageUrl = URL.createObjectURL(data); // Create a temporary URL for preview
+            }
+
+            document.getElementById(`preview-container-${step}`).style.display = 'block';
+            document.getElementById(`preview-${step}`).src = imageUrl;
+            
+            // Enable the 'Next' or 'Submit' button
+            const nextBtn = document.getElementById(`next-${step}`);
+            if (nextBtn) nextBtn.disabled = false;
+            
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                 // Check if all steps have data before enabling the final submit button
+                if (fileDataStore[1] && fileDataStore[2] && fileDataStore[3] && fileDataStore[4]) {
+                    submitBtn.disabled = false;
+                }
+            }
+        };
+        // --- END OF CRITICAL CHANGE ---
+        
+        window.startCamera = async (step) => {
+            // ... (this function remains mostly the same) ...
+            activeCameraStep = step;
+            const cameraModal = document.getElementById('camera-modal');
+            const video = document.getElementById('camera-stream');
+            const lang = localStorage.getItem('userLanguage') || 'en';
+            cameraModal.style.display = 'flex';
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const constraints = { video: { facingMode: 'environment' }, audio: false };
+                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    video.srcObject = cameraStream;
+                } else { throw new Error("Camera API not supported."); }
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                alert(translations[lang].webcam_alert);
+                cameraModal.style.display = 'none';
+            }
+        };
+
+        const stopCamera = () => {
+             if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('camera-modal').style.display = 'none';
+        };
+
+        const captureBtn = document.getElementById('capture-btn');
+        captureBtn.addEventListener('click', () => {
+            if (!activeCameraStep) return;
+
+            const video = document.getElementById('camera-stream');
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            
+            const imageBlob = dataURLtoBlob(dataUrl); // Convert to Blob
+            processImage(activeCameraStep, imageBlob); // Process the Blob
+            
+            // ... (UI logic for retake buttons) ...
+            stopCamera();
+        });
+
+        document.getElementById('cancel-capture-btn').addEventListener('click', stopCamera);
+        
+        const setupFileUploads = () => {
+            for (let i = 1; i <= totalSteps; i++) {
+                const uploadTrigger = document.querySelector(`.upload-btn-trigger[data-step="${i}"]`);
+                const fileInput = document.getElementById(`file-input-${i}`);
+                
+                uploadTrigger.addEventListener('click', () => fileInput.click());
+                
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        processImage(i, file); // Process the actual File object directly
+                        // ... (UI logic for change button) ...
+                    }
+                });
+            }
+        };
+        
+        for (let i = 1; i < totalSteps; i++) {
+            const nextBtn = document.getElementById(`next-${i}`);
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    currentStep++;
+                    showStep(currentStep);
+                });
+            }
+        }
+        
+        // --- START OF PERMANENT FIX: SUBMIT FORM DATA CORRECTLY ---
+        verificationForm.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+            const loader = document.getElementById('loader');
+            const successState = document.getElementById('success-state');
+            
+            document.querySelector('#verificationForm').style.display = 'none';
+            document.querySelector('.progress-bar-container').style.display = 'none';
+            loader.style.display = 'block';
+
+            // Create a new FormData object MANUALLY. This is the fix.
+            const formData = new FormData();
+            formData.append('recent_photo', fileDataStore[1], 'recent_photo.jpg');
+            formData.append('dental_xray', fileDataStore[2], 'dental_xray.jpg');
+            formData.append('aadhaar_card', fileDataStore[3], 'aadhaar_card.jpg');
+            formData.append('blood_group_report', fileDataStore[4], 'blood_report.jpg');
+
+            // Now we send the CORRECT FormData object
+            fetch("{{ url_for('verify_profile') }}", {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    loader.style.display = 'none';
+                    successState.style.display = 'block';
+                } else {
+                    loader.style.display = 'none';
+                    document.querySelector('#verificationForm').style.display = 'block';
+                    document.querySelector('.progress-bar-container').style.display = 'block';
+                    alert('Verification Failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loader.style.display = 'none';
+                document.querySelector('#verificationForm').style.display = 'block';
+                document.querySelector('.progress-bar-container').style.display = 'block';
+                alert('An unexpected error occurred. Please check your connection and try again.');
+            });
+        });
+        // --- END OF PERMANENT FIX ---
+
+        const savedLang = localStorage.getItem('userLanguage') || 'en';
+        changeLanguage(savedLang);
+        showStep(currentStep);
+        setupFileUploads();
+        
+        // Little detail: translate the initial "retake/change" text too on load
+        translatePage(savedLang);
+    });
+</script>
+</body>
+</html>
